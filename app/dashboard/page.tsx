@@ -1,0 +1,447 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import Nav from "@/components/Nav";
+import { BarRow, PriorityBadge, StatusBadge } from "@/components/ui";
+import {
+  formatDate,
+  supabase,
+  STATUSES,
+  PRIORITIES,
+  type Issue,
+} from "@/lib/supabase";
+
+type Kam = { id: string; full_name: string; email: string; phone: string | null };
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [kam, setKam] = useState<Kam | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // filters
+  const [search, setSearch] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fPriority, setFPriority] = useState("");
+  const [fZone, setFZone] = useState("");
+  const [fHub, setFHub] = useState("");
+  const [fCategory, setFCategory] = useState("");
+
+  // reference data
+  const [zones, setZones] = useState<{ code: string; name: string }[]>([]);
+  const [hubs, setHubs] = useState<{ zone_code: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data: session } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (!session.user) {
+        router.replace("/login");
+        return;
+      }
+      setUser({ email: session.user.email ?? "" });
+
+      const [kamRes, issueRes, zoneRes, hubRes, catRes] = await Promise.all([
+        supabase.from("kams").select("id,full_name,email,phone").eq("email", session.user.email!).maybeSingle(),
+        supabase.from("issues").select("*").order("created_at", { ascending: false }).limit(500),
+        supabase.from("zones").select("code,name").order("code"),
+        supabase.from("hubs").select("zone_code,name").order("name"),
+        supabase.from("categories").select("name,subcategory"),
+      ]);
+
+      if (!mounted) return;
+      if (kamRes.error) setError(kamRes.error.message);
+      if (issueRes.error) setError(issueRes.error.message);
+
+      setKam(kamRes.data ?? null);
+      setIssues((issueRes.data ?? []) as Issue[]);
+      setZones(zoneRes.data ?? []);
+      setHubs(hubRes.data ?? []);
+      setCategories(Array.from(new Set((catRes.data ?? []).map((c) => c.name))).sort());
+      setLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return issues.filter((i) => {
+      if (fStatus && i.status !== fStatus) return false;
+      if (fPriority && i.priority !== fPriority) return false;
+      if (fZone && i.zone !== fZone) return false;
+      if (fHub && i.hub !== fHub) return false;
+      if (fCategory && i.category !== fCategory) return false;
+      if (q) {
+        const hay = `${i.reference_no} ${i.merchant_name} ${i.parcel_id ?? ""} ${i.hub ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [issues, search, fStatus, fPriority, fZone, fHub, fCategory]);
+
+  const stats = useMemo(() => {
+    const total = issues.length;
+    const open = issues.filter((i) => i.status === "Open").length;
+    const inProgress = issues.filter((i) => i.status === "In Progress").length;
+    const resolved = issues.filter(
+      (i) => i.status === "Resolved" || i.status === "Closed"
+    ).length;
+    const critical = issues.filter(
+      (i) => i.priority === "Critical" && i.status !== "Resolved" && i.status !== "Closed"
+    ).length;
+    return { total, open, inProgress, resolved, critical };
+  }, [issues]);
+
+  const byCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    filtered.forEach((i) => map.set(i.category, (map.get(i.category) ?? 0) + 1));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [filtered]);
+
+  const byZone = useMemo(() => {
+    const map = new Map<string, number>();
+    filtered.forEach((i) => map.set(i.zone ?? "—", (map.get(i.zone ?? "—") ?? 0) + 1));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [filtered]);
+
+  const zoneHubs = useMemo(
+    () => hubs.filter((h) => !fZone || h.zone_code === fZone),
+    [hubs, fZone]
+  );
+
+  async function changeStatus(id: string, status: string) {
+    setUpdatingId(id);
+    const { error } = await supabase
+      .from("issues")
+      .update({ status })
+      .eq("id", id);
+    setUpdatingId(null);
+    if (error) setError(error.message);
+    setIssues((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, status: status as Issue["status"] } : i))
+    );
+  }
+
+  function resetFilters() {
+    setSearch("");
+    setFStatus("");
+    setFPriority("");
+    setFZone("");
+    setFHub("");
+    setFCategory("");
+  }
+
+  const hasFilters =
+    search || fStatus || fPriority || fZone || fHub || fCategory;
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-slate-500">
+        Loading…
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Nav email={user.email} name={kam?.full_name ?? user.email.split("@")[0]} />
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Issue Dashboard</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Welcome back, {kam?.full_name ?? "KAM"} — here are your escalated issues.
+            </p>
+          </div>
+          <Link
+            href="/escalate"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+            </svg>
+            Escalate New Issue
+          </Link>
+        </div>
+
+        {error && (
+          <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <StatCard label="Total Issues" value={stats.total} tone="slate" />
+          <StatCard label="Open" value={stats.open} tone="amber" />
+          <StatCard label="In Progress" value={stats.inProgress} tone="blue" />
+          <StatCard label="Resolved / Closed" value={stats.resolved} tone="emerald" />
+          <StatCard label="Critical (Active)" value={stats.critical} tone="red" />
+        </div>
+
+        {/* Charts */}
+        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
+              Issues by Category
+            </h2>
+            <div className="space-y-2.5">
+              {byCategory.slice(0, 8).map(([label, value], idx) => (
+                <BarRow
+                  key={label}
+                  label={label}
+                  value={value}
+                  max={byCategory[0][1]}
+                  color={idx === 0 ? "bg-brand" : "bg-brand-400"}
+                />
+              ))}
+              {byCategory.length === 0 && (
+                <p className="text-sm text-slate-400">No data</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
+              Issues by Zone
+            </h2>
+            <div className="space-y-2.5">
+              {byZone.map(([label, value]) => (
+                <BarRow
+                  key={label}
+                  label={label}
+                  value={value}
+                  max={byZone[0][1]}
+                  color="bg-blue-500"
+                />
+              ))}
+              {byZone.length === 0 && <p className="text-sm text-slate-400">No data</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[220px] flex-1">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Search
+              </label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Reference no, merchant, parcel ID…"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
+            <FilterSelect label="Status" value={fStatus} onChange={setFStatus} options={STATUSES as unknown as string[]} />
+            <FilterSelect label="Priority" value={fPriority} onChange={setFPriority} options={PRIORITIES as unknown as string[]} />
+            <FilterSelect
+              label="Zone"
+              value={fZone}
+              onChange={(v) => { setFZone(v); setFHub(""); }}
+              options={zones.map((z) => z.code)}
+            />
+            <FilterSelect
+              label="Hub"
+              value={fHub}
+              onChange={setFHub}
+              options={zoneHubs.map((h) => h.name)}
+              disabled={!fZone}
+            />
+            <FilterSelect
+              label="Category"
+              value={fCategory}
+              onChange={setFCategory}
+              options={categories}
+            />
+            <button
+              onClick={resetFilters}
+              disabled={!hasFilters}
+              className="mb-0.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3">Reference</th>
+                  <th className="px-4 py-3">Merchant</th>
+                  <th className="px-4 py-3">Parcel ID</th>
+                  <th className="px-4 py-3">Zone / Hub</th>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Priority</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                      Loading issues…
+                    </td>
+                  </tr>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center">
+                      <p className="font-medium text-slate-600">No issues match your filters.</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {issues.length === 0
+                          ? "Escalate your first issue to get started."
+                          : "Try adjusting the filters above."}
+                      </p>
+                    </td>
+                  </tr>
+                )}
+                {filtered.map((issue) => (
+                  <tr
+                    key={issue.id}
+                    className="group transition hover:bg-slate-50"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/issues?id=${issue.id}`}
+                        className="font-mono text-xs font-semibold text-brand hover:underline"
+                      >
+                        {issue.reference_no}
+                      </Link>
+                      <div className="mt-0.5 text-[11px] text-slate-400">
+                        {formatDate(issue.created_at)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {issue.merchant_name}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">
+                      {issue.parcel_id ?? "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                        {issue.zone ?? "—"}
+                      </span>
+                      <div className="mt-1 text-xs text-slate-500">{issue.hub ?? "—"}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-700">{issue.category}</div>
+                      <div className="text-xs text-slate-400">{issue.subcategory}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <PriorityBadge priority={issue.priority} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={issue.status}
+                        disabled={updatingId === issue.id}
+                        onChange={(e) => changeStatus(issue.id, e.target.value)}
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold outline-none ring-1 ring-inset transition disabled:opacity-60 ${STATUS_CLASS[issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+                      >
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s} className="bg-white">
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {formatDate(issue.created_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs text-slate-400">
+          Showing {filtered.length} of {issues.length} issues · Each KAM only sees their own issues (row-level security).
+        </p>
+      </main>
+    </>
+  );
+}
+
+const STATUS_CLASS: Record<string, string> = {
+  Open: "bg-amber-100 text-amber-800 ring-amber-200",
+  "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
+  Resolved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  Closed: "bg-slate-200 text-slate-700 ring-slate-300",
+  "Re-opened": "bg-red-100 text-red-800 ring-red-200",
+};
+
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "slate" | "amber" | "blue" | "emerald" | "red";
+}) {
+  const tones: Record<typeof tone, string> = {
+    slate: "border-slate-200 text-slate-700",
+    amber: "border-amber-200 text-amber-700",
+    blue: "border-blue-200 text-blue-700",
+    emerald: "border-emerald-200 text-emerald-700",
+    red: "border-red-200 text-red-700",
+  };
+  return (
+    <div className={`rounded-2xl border bg-white p-5 shadow-sm ${tones[tone]}`}>
+      <div className="text-3xl font-bold text-slate-900">{value}</div>
+      <div className="mt-1 text-sm font-medium">{label}</div>
+    </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </label>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-400"
+      >
+        <option value="">All</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
