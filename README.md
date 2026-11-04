@@ -1,0 +1,110 @@
+# KAM Issue Escalation Portal
+
+An issue escalation form + dashboard for **Key Account Managers (KAM)**. A KAM
+logs in, escalates field issues (merchant, zone/hub, category, priority), and
+tracks them through resolution. Built with **Next.js · Supabase · Vercel**.
+
+## Features
+
+- **Login** — email/password via Supabase Auth. New KAM accounts are created on
+  first sign-up; every KAM only sees their own issues (Postgres RLS).
+- **Dashboard** — stats (total / open / in progress / resolved / critical),
+  issues-by-category and issues-by-zone charts, and a filterable table.
+  Status can be updated inline.
+- **Escalation form** — merchant details, parcel ID, dependent Zone → Hub and
+  Category → Subcategory dropdowns, priority, and description. A reference
+  number (`ESC-YYMMDD-####`) is auto-generated.
+- **Issue detail** — full details, status workflow (Open → In Progress →
+  Resolved → Closed / Re-opened), resolution note, and delete.
+- **Reference data** — zones, hubs and category/subcategory pairs are seeded
+  from the two Google Sheets and stored in Supabase (`zones`, `hubs`,
+  `categories`).
+
+## Tech stack
+
+- Next.js 15 (App Router, TypeScript)
+- @supabase/supabase-js (client)
+- Supabase Postgres (auth, RLS, tables)
+- Tailwind CSS v4
+- Vercel deployment
+
+## Supabase setup
+
+Use project: **nuruzzamannahid-dot's Project** (`eszrbptehtztbzrlvlzi`, ap-south-1).
+
+### Tables (already created & seeded)
+
+| Table          | Purpose                                             |
+| -------------- | ---------------------------------------------------- |
+| `zones`        | Zone codes: ISD, SUB, OSD, CTG                      |
+| `hubs`         | 190 hubs grouped by zone (from Google Sheet #1)      |
+| `categories`   | 98 category/subcategory pairs (from Google Sheet #2) |
+| `kams`         | KAM profiles, auto-created on sign-up via trigger    |
+| `issues`       | Escalated issues, scoped per KAM via RLS             |
+
+RLS policies: each authenticated user can only read/insert/update/delete
+**their own** rows in `issues` and `kams`; reference tables are readable.
+
+### Environment variables
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://eszrbptehtztbzrlvlzi.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<project anon key>
+```
+
+(The app already falls back to the project's values, so this is optional but
+recommended for production.)
+
+### Demo account
+
+```
+demo@kamhub.com / demo1234
+```
+
+## Run locally
+
+```bash
+npm install
+npm run dev    # http://localhost:3000
+```
+
+## Deploy to Vercel
+
+1. Push this folder to GitHub (new repo, e.g. `kam-issue-portal`):
+   ```bash
+   git init && git add -A && git commit -m "KAM issue escalation portal"
+   git branch -M main
+   git remote add origin https://github.com/<you>/kam-issue-portal.git
+   git push -u origin main
+   ```
+2. In Vercel: **Add New → Import Git Repository** → pick the repo.
+   Vercel detects Next.js automatically.
+3. Add the two environment variables (Settings → Environment Variables).
+4. Deploy — production URL is live immediately.
+
+## GitHub / Vercel / Supabase notes
+
+- Supabase project ref: `eszrbptehtztbzrlvlzi`
+- Auth: email/password signups enabled, email auto-confirmed (demo setting —
+  disable in production and confirm via email instead).
+- Reference data can be refreshed from the Google Sheets by re-running the
+  inserts in `scripts/seed.sql` style queries (kept simple here; no scripts
+  folder shipped to keep the repo lean).
+
+## Project structure
+
+```
+app/
+  layout.tsx          root layout
+  page.tsx            redirects to /login or /dashboard
+  login/page.tsx      sign in / sign up
+  dashboard/page.tsx  stats, charts, filters, issue table
+  escalate/page.tsx   new issue escalation form
+  issues/[id]/page.tsx  issue detail + status workflow
+  globals.css         Tailwind + theme
+components/
+  Nav.tsx            top navigation
+  ui.tsx             badges, logo, bar rows
+lib/
+  supabase.ts        supabase client, types, helpers
+```
