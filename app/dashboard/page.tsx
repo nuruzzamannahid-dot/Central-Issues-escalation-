@@ -464,6 +464,79 @@ export default function DashboardPage() {
     }
   }
 
+
+  // ===== Action Buttons Component =====
+  function ActionButtons({
+    issue, canCm, canKam, cmSla, kamSla, ibKamIds, updatingId, onCmAction, onKamAction, onJustify,
+  }: {
+    issue: Issue;
+    canCm: boolean;
+    canKam: boolean;
+    cmSla: ReturnType<typeof getCmActionSlaState>;
+    kamSla: ReturnType<typeof getKamActionSlaState>;
+    ibKamIds: string[];
+    updatingId: string | null;
+    onCmAction: (id: string, action: string) => void;
+    onKamAction: (id: string) => void;
+    onJustify: (type: "kam" | "cm") => void;
+  }) {
+    const showCm = canCm && issue.zone && ibKamIds.includes(issue.kam_id);
+    let cmBtn = null;
+    if (showCm) {
+      if (cmSla.level !== "ok") {
+        cmBtn = (
+          <button
+            onClick={() => onJustify("cm")}
+            className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
+          >
+            Justify
+          </button>
+        );
+      } else {
+        cmBtn = (
+          <button
+            onClick={() => onCmAction(issue.id, "Pickup")}
+            disabled={updatingId === issue.id}
+            className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-400 hover:bg-brand-500/25 disabled:opacity-50"
+          >
+            Pick Up
+          </button>
+        );
+      }
+    }
+
+    let kamBtn = null;
+    if (canKam) {
+      if (kamSla.level !== "ok") {
+        kamBtn = (
+          <button
+            onClick={() => onJustify("kam")}
+            className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
+          >
+            Justify
+          </button>
+        );
+      } else {
+        kamBtn = (
+          <button
+            onClick={() => onKamAction(issue.id)}
+            disabled={updatingId === issue.id}
+            className="rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-400 hover:bg-purple-500/25 disabled:opacity-50"
+          >
+            Follow Up
+          </button>
+        );
+      }
+    }
+
+    return (
+      <div className="flex items-center justify-center gap-1">
+        {cmBtn}
+        {kamBtn}
+      </div>
+    );
+  }
+
   // ===== Donut SVG helper =====
   function Donut({ met, breached, pending, total, label }: { met: number; breached: number; pending: number; total: number; label: string }) {
     const dt = total || 1;
