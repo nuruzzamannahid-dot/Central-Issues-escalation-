@@ -22,6 +22,10 @@ import {
   CM_JUSTIFICATION_MAX,
   canUseCmAction,
   canPerformCmAction,
+  getKamActionSlaState,
+  canUseKamAction,
+  canPerformKamAction,
+  KAM_JUSTIFICATION_MAX,
   type Issue,
 } from "@/lib/supabase";
 
@@ -40,6 +44,7 @@ export default function IssueDetailPage() {
   const [canAccess, setCanAccess] = useState(true);
   const [ibKamIds, setIbKamIds] = useState<string[]>([]);
   const [cmJustification, setCmJustification] = useState("");
+  const [kamJustification, setKamJustification] = useState("");
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -111,12 +116,23 @@ export default function IssueDetailPage() {
   async function saveUpdate() {
     if (!issue) return;
     setSaving(true);
-    // OPS status and KAM status are synced — one status for the issue.
+    // Map KAM status to OPS status — not all KAM statuses have OPS equivalents
+    const opsMap: Record<string, string> = {
+      "Open": "Open",
+      "In Progress": "In Progress",
+      "Resolved": "Solved",
+      "Not Remarks": "Open",
+      "Improper": "Open",
+      "Solved": "Solved",
+      "Closed": "Open",
+      "Re-opened": "Open",
+    };
+    const opsStatus = opsMap[newStatus] ?? "Open";
     const { error: err } = await supabase
       .from("issues")
       .update({
         status: newStatus,
-        ops_status: newStatus,
+        ops_status: opsStatus,
         ops_status_at: new Date().toISOString(),
         resolution_note: resolutionNote.trim() || null,
       })
@@ -129,7 +145,7 @@ export default function IssueDetailPage() {
     setIssue({
       ...issue,
       status: newStatus as Issue["status"],
-      ops_status: newStatus as Issue["ops_status"],
+      ops_status: opsStatus as Issue["ops_status"],
       ops_status_at: new Date().toISOString(),
       resolution_note: resolutionNote.trim() || null,
     });
@@ -183,6 +199,54 @@ export default function IssueDetailPage() {
       cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
     });
     setCmJustification("");
+  }
+
+  async function setKamAction(id: string) {
+    if (!issue) return;
+    setSaving(true);
+    const { error: err } = await supabase
+      .from("issues")
+      .update({
+        kam_followup_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setIssue({
+      ...issue,
+      kam_followup_at: new Date().toISOString(),
+    });
+  }
+
+  async function giveKamJustification(id: string, text: string) {
+    if (!issue) return;
+    setSaving(true);
+    const newCount = (issue.kam_justification_count ?? 0) + 1;
+    const { error: err } = await supabase
+      .from("issues")
+      .update({
+        kam_justification: text,
+        kam_justification_count: newCount,
+        kam_blocked: newCount >= KAM_JUSTIFICATION_MAX,
+        kam_lead_alerted: newCount >= KAM_JUSTIFICATION_MAX,
+      })
+      .eq("id", id);
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setIssue({
+      ...issue,
+      kam_justification: text,
+      kam_justification_count: newCount,
+      kam_blocked: newCount >= KAM_JUSTIFICATION_MAX,
+      kam_lead_alerted: newCount >= KAM_JUSTIFICATION_MAX,
+    });
+    setKamJustification("");
   }
 
   async function removeIssue() {
@@ -588,6 +652,139 @@ export default function IssueDetailPage() {
                 {!issue.cm_action && !issue.cm_blocked && (
                   <div className="mt-4 rounded-lg bg-slate-50 px-4 py-2.5 text-[11px] text-slate-500">
                     Pickup SLA: 20 minutes from escalation · If no pickup, give a justification (max {CM_JUSTIFICATION_MAX} times, then blocked for members).
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* KAM Action — all issues */}
+            {access && canUseKamAction(access.role, access.teamName) && (
+              <section className="rounded-2xl border border-violet-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700">
+                    KAM Action
+                  </h2>
+                  {issue.kam_followup_at && (
+                    <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                      Follow-up done
+                    </span>
+                  )}
+                </div>
+
+                {/* SLA badge */}
+                {(() => {
+                  const s = getKamActionSlaState(issue);
+                  if (s.level === "ok" && !issue.kam_followup_at) {
+                    return (
+                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-700">
+                        ✓ SLA on track — follow-up due within 2 hours of escalation
+                      </div>
+                    );
+                  }
+                  if (issue.kam_followup_at) {
+                    return (
+                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-700">
+                        ✓ Follow-up completed
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-50 px-4 py-2 text-xs font-bold ring-1 ring-inset ring-amber-200 text-amber-700">
+                      ⚠ SLA BREACH — KAM follow-up overdue
+                      {s.deadline && (
+                        <span className="ml-auto font-normal text-slate-500">
+                          Deadline {formatDateTime(s.deadline.toISOString())}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Blocked notice */}
+                {issue.kam_blocked && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                    🔒 BLOCKED — Justification limit reached ({issue.kam_justification_count}/{KAM_JUSTIFICATION_MAX}). Only Lead/Super Admin can work with this issue. Lead has been alerted.
+                  </div>
+                )}
+
+                {/* Lead alerted badge */}
+                {issue.kam_lead_alerted && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[11px] font-bold text-red-700">
+                    🚨 LEAD + SUPER ADMIN ALERT SENT
+                  </div>
+                )}
+
+                {/* Current justification */}
+                {issue.kam_justification && (
+                  <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-600">
+                      Justification ({issue.kam_justification_count}/{KAM_JUSTIFICATION_MAX})
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{issue.kam_justification}</p>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                {canPerformKamAction(access.role, access.teamName, issue.kam_blocked) && (
+                  <div className="flex flex-wrap gap-2">
+                    {!issue.kam_followup_at && (
+                      <button
+                        onClick={() => setKamAction(issue.id)}
+                        disabled={saving}
+                        className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
+                      >
+                        ✓ Follow Up
+                      </button>
+                    )}
+                    {!issue.kam_followup_at && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
+                      <button
+                        onClick={() => setKamJustification(kamJustification)}
+                        className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                      >
+                        📝 Give Justification
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Justification textarea */}
+                {kamJustification && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
+                  <div className="mt-4">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Justification for not following up
+                    </label>
+                    <textarea
+                      value={kamJustification}
+                      onChange={(e) => setKamJustification(e.target.value)}
+                      rows={3}
+                      placeholder="Explain why follow-up was not done within 2 hours…"
+                      className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => giveKamJustification(issue.id, kamJustification.trim())}
+                        disabled={saving || !kamJustification.trim()}
+                        className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                      >
+                        Submit Justification
+                      </button>
+                      <button
+                        onClick={() => setKamJustification("")}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                      <span className="ml-auto text-[11px] text-slate-400">
+                        {(issue.kam_justification_count ?? 0)}/{KAM_JUSTIFICATION_MAX} used
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* SLA info */}
+                {!issue.kam_followup_at && !issue.kam_blocked && (
+                  <div className="mt-4 rounded-lg bg-slate-50 px-4 py-2.5 text-[11px] text-slate-500">
+                    Follow-up SLA: 2 hours from escalation · If no follow-up, give a justification (max {KAM_JUSTIFICATION_MAX} times, then blocked for members and Lead + Super Admin are alerted).
                   </div>
                 )}
               </section>

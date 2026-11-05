@@ -22,6 +22,10 @@ import {
   getKamIdsForTeams,
   canUseCmAction,
   canPerformCmAction,
+  getKamActionSlaState,
+  canUseKamAction,
+  canPerformKamAction,
+  KAM_JUSTIFICATION_MAX,
   type Issue,
 } from "@/lib/supabase";
 
@@ -47,6 +51,10 @@ export default function DashboardPage() {
   const [cmJustification, setCmJustification] = useState("");
   const [cmJustificationId, setCmJustificationId] = useState<string | null>(null);
   const [cmUpdatingId, setCmUpdatingId] = useState<string | null>(null);
+  // KAM Action state
+  const [kamJustification, setKamJustification] = useState("");
+  const [kamJustificationId, setKamJustificationId] = useState<string | null>(null);
+  const [kamUpdatingId, setKamUpdatingId] = useState<string | null>(null);
 
   // filters
   const [search, setSearch] = useState("");
@@ -205,17 +213,28 @@ export default function DashboardPage() {
 
   async function changeStatus(id: string, status: string) {
     setUpdatingId(id);
-    // OPS status and KAM status are synced — one status for the issue.
+    // Map KAM status to OPS status — not all KAM statuses have OPS equivalents
+    const opsMap: Record<string, string> = {
+      "Open": "Open",
+      "In Progress": "In Progress",
+      "Resolved": "Solved",
+      "Not Remarks": "Open",
+      "Improper": "Open",
+      "Solved": "Solved",
+      "Closed": "Open",
+      "Re-opened": "Open",
+    };
+    const opsStatus = opsMap[status] ?? "Open";
     const { error } = await supabase
       .from("issues")
-      .update({ status, ops_status: status, ops_status_at: new Date().toISOString() })
+      .update({ status, ops_status: opsStatus, ops_status_at: new Date().toISOString() })
       .eq("id", id);
     setUpdatingId(null);
     if (error) setError(error.message);
     setIssues((prev) =>
       prev.map((i) =>
         i.id === id
-          ? { ...i, status: status as Issue["status"], ops_status: status, ops_status_at: new Date().toISOString() } as Issue
+          ? { ...i, status: status as Issue["status"], ops_status: opsStatus, ops_status_at: new Date().toISOString() } as Issue
           : i
       )
     );
@@ -278,6 +297,59 @@ export default function DashboardPage() {
               cm_justification: text.trim(),
               cm_justification_count: newCount,
               cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
+            } as Issue
+          : i
+      )
+    );
+  }
+
+  // KAM Action functions
+  async function setKamAction(id: string) {
+    setKamUpdatingId(id);
+    const { error } = await supabase
+      .from("issues")
+      .update({
+        kam_followup_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    setKamUpdatingId(null);
+    if (error) setError(error.message);
+    setIssues((prev) =>
+      prev.map((i) =>
+        i.id === id ? { ...i, kam_followup_at: new Date().toISOString() } as Issue : i
+      )
+    );
+  }
+
+  async function giveKamJustification(id: string, text: string) {
+    setKamUpdatingId(id);
+    const issue = issues.find((i) => i.id === id);
+    const newCount = (issue?.kam_justification_count ?? 0) + 1;
+    const update: Record<string, unknown> = {
+      kam_justification: text.trim(),
+      kam_justification_count: newCount,
+    };
+    if (newCount >= KAM_JUSTIFICATION_MAX) {
+      update.kam_blocked = true;
+      update.kam_lead_alerted = true;
+    }
+    const { error } = await supabase
+      .from("issues")
+      .update(update)
+      .eq("id", id);
+    setKamUpdatingId(null);
+    setKamJustification("");
+    setKamJustificationId(null);
+    if (error) setError(error.message);
+    setIssues((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              kam_justification: text.trim(),
+              kam_justification_count: newCount,
+              kam_blocked: newCount >= KAM_JUSTIFICATION_MAX,
+              kam_lead_alerted: newCount >= KAM_JUSTIFICATION_MAX,
             } as Issue
           : i
       )
@@ -468,20 +540,21 @@ export default function DashboardPage() {
                   <th className="px-4 py-3">Priority</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">CM Action</th>
+                  <th className="px-4 py-3">KAM Action</th>
                   <th className="px-4 py-3">Created</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
+                    <td colSpan={10} className="px-4 py-10 text-center text-slate-400">
                       Loading issues…
                     </td>
                   </tr>
                 )}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center">
+                    <td colSpan={10} className="px-4 py-10 text-center">
                       <p className="font-medium text-slate-600">No issues match your filters.</p>
                       <p className="mt-1 text-xs text-slate-400">
                         {issues.length === 0
@@ -568,6 +641,45 @@ export default function DashboardPage() {
                                 }`}
                               >
                                 ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {access && canUseKamAction(access.role, access.teamName) ? (
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                              issue.kam_followup_at
+                                ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
+                                : issue.kam_blocked
+                                ? "bg-red-100 text-red-800 ring-red-200"
+                                : "bg-slate-100 text-slate-500 ring-slate-200"
+                            }`}
+                          >
+                            {issue.kam_followup_at
+                              ? "Follow-up done"
+                              : issue.kam_blocked
+                              ? "BLOCKED"
+                              : "Pending"}
+                          </span>
+                          {(() => {
+                            const s = getKamActionSlaState(issue);
+                            if (s.level === "ok" && issue.kam_followup_at)
+                              return null;
+                            return (
+                              <span
+                                className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
+                                  s.level === "breach"
+                                    ? "bg-amber-100 text-amber-800 ring-amber-200"
+                                    : "bg-emerald-100 text-emerald-800 ring-emerald-200"
+                                }`}
+                              >
+                                {s.level === "breach" ? "⚠ SLA BREACH" : "✓ On track"}
                               </span>
                             );
                           })()}
@@ -785,6 +897,174 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* KAM Action — all issues */}
+        {access && canUseKamAction(access.role, access.teamName) && (
+          <div className="mt-8 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+            <div className="border-b border-violet-100 bg-violet-50 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700">
+                  KAM Action — Follow-up Workflow
+                </h2>
+                <span className="text-[11px] text-violet-500">
+                  Follow-up SLA: 2 hours · Justification max 2× · After 2 justifications alert goes to Lead + Super Admin
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-4 py-3">Reference</th>
+                    <th className="px-4 py-3">KAM Action</th>
+                    <th className="px-4 py-3">SLA</th>
+                    <th className="px-4 py-3">Justification</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filtered.map((issue) => {
+                    const canAct = canPerformKamAction(
+                      access.role,
+                      access.teamName,
+                      issue.kam_blocked
+                    );
+                    const isJustifying = kamJustificationId === issue.id;
+                    return (
+                      <tr key={issue.id} className="transition hover:bg-slate-50">
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/issues?id=${issue.id}`}
+                            className="font-mono text-xs font-semibold text-brand hover:underline"
+                          >
+                            {issue.reference_no}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                                issue.kam_followup_at
+                                  ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
+                                  : issue.kam_blocked
+                                  ? "bg-red-100 text-red-800 ring-red-200"
+                                  : "bg-slate-100 text-slate-500 ring-slate-200"
+                              }`}
+                            >
+                              {issue.kam_followup_at
+                                ? "Follow-up done"
+                                : issue.kam_blocked
+                                ? "BLOCKED"
+                                : "Pending"}
+                            </span>
+                            {issue.kam_lead_alerted && (
+                              <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800 ring-1 ring-inset ring-red-200">
+                                LEAD ALERTED
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <KamActionSlaBadge issue={issue} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="whitespace-pre-wrap text-xs text-slate-700">
+                            {issue.kam_justification || "—"}
+                          </div>
+                          {issue.kam_justification_count > 0 && (
+                            <div className="mt-1 text-[11px] text-slate-400">
+                              {issue.kam_justification_count} / {KAM_JUSTIFICATION_MAX} used
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_CLASS[issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+                          >
+                            {issue.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {isJustifying ? (
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                value={kamJustification}
+                                onChange={(e) =>
+                                  setKamJustification(e.target.value)
+                                }
+                                rows={2}
+                                placeholder="Enter justification for not following up…"
+                                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() =>
+                                    giveKamJustification(issue.id, kamJustification)
+                                  }
+                                  disabled={
+                                    kamUpdatingId === issue.id ||
+                                    !kamJustification.trim()
+                                  }
+                                  className="rounded-lg bg-violet-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+                                >
+                                  Submit
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setKamJustificationId(null);
+                                    setKamJustification("");
+                                  }}
+                                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {!issue.kam_followup_at && (
+                                <KamActionBtn
+                                  label="Follow Up"
+                                  color="violet"
+                                  disabled={!canAct || kamUpdatingId === issue.id}
+                                  onClick={() => setKamAction(issue.id)}
+                                />
+                              )}
+                              {!issue.kam_followup_at &&
+                                !issue.kam_blocked &&
+                                issue.kam_justification_count <
+                                  KAM_JUSTIFICATION_MAX && (
+                                  <KamActionBtn
+                                    label="Justify"
+                                    color="amber"
+                                    onClick={() => {
+                                      setKamJustificationId(issue.id);
+                                      setKamJustification("");
+                                    }}
+                                  />
+                                )}
+                              {issue.kam_blocked && !canAct && (
+                                <span className="text-[11px] text-red-500">
+                                  Lead action required
+                                </span>
+                              )}
+                              {issue.kam_lead_alerted && canAct && (
+                                <span className="text-[11px] text-amber-600">
+                                  Lead alerted — awaiting action
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         <p className="mt-4 text-xs text-slate-400">
           Showing {filtered.length} of {issues.length} issues ·{" "}
           {access?.teamName ? `${access.teamName} team` : "accessible teams"} ·{" "}
@@ -893,10 +1173,9 @@ export default function DashboardPage() {
 const STATUS_CLASS: Record<string, string> = {
   Open: "bg-amber-100 text-amber-800 ring-amber-200",
   "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
-  Solved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   Resolved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  Closed: "bg-slate-200 text-slate-700 ring-slate-300",
-  "Re-opened": "bg-red-100 text-red-800 ring-red-200",
+  "Not Remarks": "bg-sky-100 text-sky-800 ring-sky-200",
+  Improper: "bg-red-100 text-red-800 ring-red-200",
 };
 
 function SlaBadge({ issue }: { issue: Issue }) {
@@ -962,6 +1241,60 @@ function CmActionBtn({
     sky: "bg-sky-100 text-sky-800 ring-sky-200 hover:bg-sky-200",
     emerald:
       "bg-emerald-100 text-emerald-800 ring-emerald-200 hover:bg-emerald-200",
+    amber: "bg-amber-100 text-amber-800 ring-amber-200 hover:bg-amber-200",
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-lg px-3 py-1 text-xs font-semibold ring-1 ring-inset transition disabled:opacity-40 ${colors[color]}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function KamActionSlaBadge({ issue }: { issue: Issue }) {
+  const s = getKamActionSlaState(issue);
+  if (s.level === "ok" && !issue.kam_followup_at) {
+    return <span className="text-[11px] text-emerald-500">✓ On track</span>;
+  }
+  if (issue.kam_followup_at) {
+    return <span className="text-[11px] text-emerald-500">✓ Done</span>;
+  }
+  return (
+    <div>
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
+          s.level === "breach"
+            ? "bg-amber-100 text-amber-800 ring-amber-200"
+            : "bg-emerald-100 text-emerald-800 ring-emerald-200"
+        }`}
+      >
+        ⚠ SLA BREACH
+      </span>
+      {s.deadline && (
+        <div className="mt-1 text-[11px] text-slate-400">
+          Deadline {formatDateTime(s.deadline.toISOString())}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KamActionBtn({
+  label,
+  color,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  color: "violet" | "amber";
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const colors: Record<string, string> = {
+    violet: "bg-violet-100 text-violet-800 ring-violet-200 hover:bg-violet-200",
     amber: "bg-amber-100 text-amber-800 ring-amber-200 hover:bg-amber-200",
   };
   return (

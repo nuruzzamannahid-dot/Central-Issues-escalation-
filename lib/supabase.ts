@@ -24,7 +24,7 @@ export type Issue = {
   subcategory: string;
   priority: "Low" | "Medium" | "High" | "Critical";
   description: string;
-  status: "Open" | "In Progress" | "Solved" | "Resolved" | "Closed" | "Re-opened";
+  status: "Open" | "In Progress" | "Solved" | "Resolved" | "Closed" | "Re-opened" | "Not Remarks" | "Improper";
   resolution_note: string | null;
   created_at: string;
   updated_at: string;
@@ -41,6 +41,12 @@ export type Issue = {
   cm_justification_count: number;
   cm_blocked: boolean;
   cm_picked_by: string | null;
+  // KAM Action — all-issue follow-up workflow
+  kam_followup_at: string | null;
+  kam_justification: string | null;
+  kam_justification_count: number;
+  kam_blocked: boolean;
+  kam_lead_alerted: boolean;
 };
 
 export const OPS_STATUSES = ["Open", "In Progress", "Solved"] as const;
@@ -61,20 +67,18 @@ export type RefData = {
 export const STATUSES = [
   "Open",
   "In Progress",
-  "Solved",
   "Resolved",
-  "Closed",
-  "Re-opened",
+  "Not Remarks",
+  "Improper",
 ] as const;
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 
 export const STATUS_STYLE: Record<string, string> = {
   Open: "bg-amber-100 text-amber-800 ring-amber-200",
   "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
-  Solved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   Resolved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  Closed: "bg-slate-200 text-slate-700 ring-slate-300",
-  "Re-opened": "bg-red-100 text-red-800 ring-red-200",
+  "Not Remarks": "bg-sky-100 text-sky-800 ring-sky-200",
+  Improper: "bg-red-100 text-red-800 ring-red-200",
 };
 
 /* ----------------------------------------------------------------------- *
@@ -215,6 +219,78 @@ export const CM_ACTION_STYLE: Record<string, string> = {
 };
 
 export const CM_JUSTIFICATION_MAX = 2;
+
+/* ----------------------------------------------------------------------- *
+ *  KAM Action — all-issue follow-up workflow                               *
+ *  • KAM Follow-up SLA: 2 hours from issue creation                       *
+ *  • If no follow-up within 2h → KAM gives justification (max 2)          *
+ *  • After 2 justifications → alert goes to Lead + Super Admin            *
+ *  • KAM is blocked from further action                                    *
+ *  • Dashboard statuses: Open, In Progress, Resolved, Not Remarks, Improper *
+ *  • GSheet sync: 1st remarks → auto "In Progress" (both OPS + KAM)        *
+ *  • 2nd remarks → KAM decides status (Resolved / Not Remarks / Improper) *
+ *  • KAM Action section shows ALL issues (not just IB)                     *
+ *  • Visible to: all team members, Team Lead, Super Admin                 *
+ * ----------------------------------------------------------------------- */
+
+export const KAM_FOLLOWUP_SLA_HOURS = 2;
+export const KAM_JUSTIFICATION_MAX = 2;
+
+export type KamActionSlaState = {
+  level: "ok" | "breach";
+  label: string;
+  deadline: Date | null;
+};
+
+/** Returns the KAM Action SLA state for an issue.
+ *  If kam_followup_at exists, the SLA is satisfied (follow-up done).
+ *  Otherwise, 2-hour window from creation applies. */
+export function getKamActionSlaState(
+  issue: Pick<Issue, "created_at" | "kam_followup_at">,
+  now: Date = new Date()
+): KamActionSlaState {
+  const created = issue.created_at ? new Date(issue.created_at) : null;
+  const followupAt = issue.kam_followup_at ? new Date(issue.kam_followup_at) : null;
+
+  if (followupAt) {
+    // Follow-up done — SLA satisfied
+    return { level: "ok", label: "Follow-up done", deadline: null };
+  }
+
+  // No follow-up yet — 2-hour SLA from creation
+  if (created) {
+    const deadline = new Date(created.getTime() + KAM_FOLLOWUP_SLA_HOURS * 3600000);
+    if (now.getTime() > deadline.getTime()) {
+      return { level: "breach", label: "SLA BREACH — KAM follow-up overdue", deadline };
+    }
+  }
+  return { level: "ok", label: "", deadline: null };
+}
+
+export const KAM_ACTION_STYLE: Record<string, string> = {
+  "Followup": "bg-violet-100 text-violet-800 ring-violet-200",
+};
+
+/** Returns true if the user can use the KAM Action section.
+ *  KAM Action applies to all issues — visible to everyone with issue access. */
+export function canUseKamAction(role: string, teamName: string): boolean {
+  // All team members, Team Leads, and Super Admin can use KAM Action
+  return role === "Super Admin" || role === "Team Lead" || role === "Member" || role === "CM";
+}
+
+/** Returns true if the user can perform KAM actions on an issue.
+ *  After 2 justifications → only Lead or Super Admin can act. */
+export function canPerformKamAction(
+  role: string,
+  teamName: string,
+  issueKamBlocked: boolean
+): boolean {
+  if (issueKamBlocked) {
+    // Blocked — only Lead or Super Admin can act
+    return role === "Super Admin" || role === "Team Lead";
+  }
+  return canUseKamAction(role, teamName);
+}
 
 export const PRIORITY_STYLE: Record<string, string> = {
   Low: "bg-slate-100 text-slate-700 ring-slate-200",
