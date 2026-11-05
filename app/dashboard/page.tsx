@@ -2,30 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Nav from "@/components/Nav";
 import {
   formatDate,
   formatDateTime,
   supabase,
-  STATUSES,
-  PRIORITIES,
-  OPS_STATUS_STYLE,
   STATUS_STYLE,
   getSlaState,
   SLA_STYLE,
   getCmActionSlaState,
-  CM_ACTIONS,
-  CM_ACTION_STYLE,
-  CM_JUSTIFICATION_MAX,
   getUserAccess,
   getKamIdsForTeams,
   canUseCmAction,
-  canPerformCmAction,
   getKamActionSlaState,
   canUseKamAction,
-  canPerformKamAction,
-  KAM_JUSTIFICATION_MAX,
   type Issue,
 } from "@/lib/supabase";
 
@@ -49,7 +39,6 @@ function pct(num: number, den: number) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [access, setAccess] = useState<{
     name: string;

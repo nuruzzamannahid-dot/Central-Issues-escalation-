@@ -53,9 +53,9 @@ export const OPS_STATUSES = ["Open", "In Progress", "Solved"] as const;
 export type OpsStatus = "Open" | "In Progress" | "Solved";
 
 export const OPS_STATUS_STYLE: Record<string, string> = {
-  Open: "bg-amber-100 text-amber-800 ring-amber-200",
-  "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
-  Solved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  Open: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
+  "In Progress": "bg-blue-500/15 text-blue-400 ring-blue-500/20",
+  Solved: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
 };
 
 export type RefData = {
@@ -74,11 +74,11 @@ export const STATUSES = [
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 
 export const STATUS_STYLE: Record<string, string> = {
-  Open: "bg-amber-100 text-amber-800 ring-amber-200",
-  "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
-  Resolved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  "Not Remarks": "bg-sky-100 text-sky-800 ring-sky-200",
-  Improper: "bg-red-100 text-red-800 ring-red-200",
+  Open: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
+  "In Progress": "bg-blue-500/15 text-blue-400 ring-blue-500/20",
+  Resolved: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
+  "Not Remarks": "bg-sky-500/15 text-sky-400 ring-sky-500/20",
+  Improper: "bg-red-500/15 text-red-400 ring-red-500/20",
 };
 
 /* ----------------------------------------------------------------------- *
@@ -135,8 +135,8 @@ export function getSlaState(
 }
 
 export const SLA_STYLE: Record<string, string> = {
-  breach: "bg-amber-100 text-amber-800 ring-amber-200",
-  critical: "bg-red-100 text-red-800 ring-red-200",
+  breach: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
+  critical: "bg-red-500/15 text-red-400 ring-red-500/20",
 };
 
 /* ----------------------------------------------------------------------- *
@@ -212,10 +212,10 @@ export function getCmActionSlaState(
 }
 
 export const CM_ACTION_STYLE: Record<string, string> = {
-  "Pickup": "bg-violet-100 text-violet-800 ring-violet-200",
-  "1st Followup": "bg-blue-100 text-blue-800 ring-blue-200",
-  "2nd Followup": "bg-sky-100 text-sky-800 ring-sky-200",
-  "3rd Followup": "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  "Pickup": "bg-violet-500/15 text-violet-400 ring-violet-500/20",
+  "1st Followup": "bg-blue-500/15 text-blue-400 ring-blue-500/20",
+  "2nd Followup": "bg-sky-500/15 text-sky-400 ring-sky-500/20",
+  "3rd Followup": "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
 };
 
 export const CM_JUSTIFICATION_MAX = 2;
@@ -293,10 +293,10 @@ export function canPerformKamAction(
 }
 
 export const PRIORITY_STYLE: Record<string, string> = {
-  Low: "bg-slate-100 text-slate-700 ring-slate-200",
-  Medium: "bg-sky-100 text-sky-800 ring-sky-200",
-  High: "bg-orange-100 text-orange-800 ring-orange-200",
-  Critical: "bg-red-100 text-red-800 ring-red-200",
+  Low: "bg-slate-500/15 text-slate-400 ring-slate-500/20",
+  Medium: "bg-sky-500/15 text-sky-400 ring-sky-500/20",
+  High: "bg-orange-500/15 text-orange-400 ring-orange-500/20",
+  Critical: "bg-red-500/15 text-red-400 ring-red-500/20",
 };
 
 export function formatDate(iso: string | null): string {

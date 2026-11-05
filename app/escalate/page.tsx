@@ -420,12 +420,12 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 function PriorityPill({ priority }: { priority: string }) {
   const style =
     priority === "Critical"
-      ? "bg-red-100 text-red-800 ring-red-200"
+      ? "bg-red-500/15 text-red-400 ring-red-500/20"
       : priority === "High"
-      ? "bg-orange-100 text-orange-800 ring-orange-200"
+      ? "bg-orange-500/15 text-orange-400 ring-orange-500/20"
       : priority === "Medium"
-      ? "bg-sky-100 text-sky-800 ring-sky-200"
-      : "bg-slate-100 text-slate-700 ring-slate-200";
+      ? "bg-sky-500/15 text-sky-400 ring-sky-500/20"
+      : "bg-slate-500/15 text-slate-400 ring-slate-500/20";
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style}`}>
       {priority}
@@ -462,7 +462,7 @@ function Combobox({
         disabled={disabled}
         className={`input flex items-center justify-between text-left ${disabled ? "disabled:bg-slate-50 disabled:text-slate-400" : ""}`}
       >
-        <span className={value ? "font-medium text-slate-800" : "text-slate-400"}>
+        <span className={value ? "font-medium text-slate-300" : "text-slate-400"}>
           {value || placeholder}
         </span>
         <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`}>

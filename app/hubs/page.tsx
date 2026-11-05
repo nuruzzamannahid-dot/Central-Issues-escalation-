@@ -244,9 +244,9 @@ export default function HubsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen dashboard-bg">
         <div className="flex h-screen items-center justify-center">
-          <div className="text-slate-500 dark:text-slate-400">Loading Hub Performance…</div>
+          <div className="text-slate-400">Loading Hub Performance…</div>
         </div>
       </div>
     );
@@ -254,7 +254,7 @@ export default function HubsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen dashboard-bg">
         <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-7xl px-4 py-12">
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-950/40">
@@ -274,7 +274,7 @@ export default function HubsPage() {
   const breachedAngle = (slaSplit.breached / donutTotal) * 360;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen dashboard-bg">
       <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
@@ -282,8 +282,8 @@ export default function HubsPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Hub Performance</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <h1 className="text-2xl font-bold text-slate-100">Hub Performance</h1>
+              <p className="text-sm text-slate-400">
                 Hub-level issue metrics, SLA compliance, and performance scorecard
               </p>
             </div>
@@ -299,12 +299,12 @@ export default function HubsPage() {
         </div>
 
         {/* Filter Bar */}
-        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+        <div className="mb-6 flex flex-wrap items-center gap-3 glass rounded-2xl p-3">
           <span className="text-xs font-bold uppercase tracking-wide text-slate-500">ZONE</span>
           <select
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            className="rounded-lg glass-input glass-input px-3 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand  text-slate-200"
           >
             {zones.map((z) => (
               <option key={z} value={z}>{z === "All" ? "All" : z}</option>
@@ -314,7 +314,7 @@ export default function HubsPage() {
           <select
             value={hubFilter}
             onChange={(e) => setHubFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            className="rounded-lg glass-input glass-input px-3 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand  text-slate-200"
           >
             {hubs.map((h) => (
               <option key={h} value={h}>{h === "All" ? "All" : h}</option>
@@ -324,22 +324,22 @@ export default function HubsPage() {
 
         {/* KPI Cards */}
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Hubs</div>
-            <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{totalHubs}</div>
+            <div className="mt-1 text-3xl font-bold text-slate-100">{totalHubs}</div>
             <div className="mt-1 text-xs text-slate-400">with issues in filter range</div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Issues</div>
-            <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{totalIssues}</div>
+            <div className="mt-1 text-3xl font-bold text-slate-100">{totalIssues}</div>
             <div className="mt-1 text-xs text-slate-400">in filtered range</div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SLA Breaches</div>
             <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-400">{totalBreached}</div>
             <div className="mt-1 text-xs text-slate-400">hub SLA breaches</div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unjustified</div>
             <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-400">{totalUnjustified}</div>
             <div className="mt-1 text-xs text-slate-400">breaches without justification</div>
@@ -374,16 +374,16 @@ export default function HubsPage() {
         {/* Charts Row */}
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Top 10 Hubs by Volume */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Top 10 Hubs by Volume</h2>
             <div className="space-y-2">
               {topHubsByVolume.map((r) => (
                 <div key={r.hub} className="flex items-center gap-2">
-                  <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-700 dark:text-slate-300" title={r.hub}>
+                  <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-300" title={r.hub}>
                     {r.hub}
                   </div>
                   <div className="flex-1">
-                    <div className="h-5 overflow-hidden rounded bg-slate-100 dark:bg-slate-800">
+                    <div className="h-5 overflow-hidden rounded bg-white/5">
                       <div
                         className="flex h-full items-center justify-end rounded bg-brand px-2 transition-all"
                         style={{ width: `${Math.max(2, (r.issues / maxVolume) * 100)}%` }}
@@ -401,16 +401,16 @@ export default function HubsPage() {
           </div>
 
           {/* Hubs with Most SLA Breaches */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Hubs with Most SLA Breaches</h2>
             <div className="space-y-2">
               {topBreachedHubs.map((r) => (
                 <div key={r.hub} className="flex items-center gap-2">
-                  <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-700 dark:text-slate-300" title={r.hub}>
+                  <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-300" title={r.hub}>
                     {r.hub}
                   </div>
                   <div className="flex-1">
-                    <div className="h-5 overflow-hidden rounded bg-slate-100 dark:bg-slate-800">
+                    <div className="h-5 overflow-hidden rounded bg-white/5">
                       <div
                         className="flex h-full items-center justify-end rounded bg-red-500 px-2 transition-all"
                         style={{ width: `${Math.max(2, (r.slaBreached / maxBreach) * 100)}%` }}
@@ -428,7 +428,7 @@ export default function HubsPage() {
           </div>
 
           {/* Hub SLA Split Donut */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+          <div className="glass rounded-2xl p-5">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Hub SLA Split</h2>
             <div className="flex flex-col items-center gap-4">
               <svg viewBox="0 0 120 120" className="h-40 w-40">
@@ -481,7 +481,7 @@ export default function HubsPage() {
         </div>
 
         {/* Hub Scorecard Table */}
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+        <div className="glass rounded-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-700">
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
               Hub Scorecard · {hubRows.length} hubs
@@ -495,7 +495,7 @@ export default function HubsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
+                <tr className="border-b border-white/5">
                   <th className="px-4 py-3 text-left font-semibold text-slate-500">HUB</th>
                   <th className="px-3 py-3 text-right font-semibold text-slate-500">ISSUES</th>
                   <th className="px-3 py-3 text-right font-semibold text-slate-500">HUB SLA%</th>
@@ -510,36 +510,36 @@ export default function HubsPage() {
               </thead>
               <tbody>
                 {hubRows.map((r) => (
-                  <tr key={r.hub} className="border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
-                    <td className="px-4 py-2.5 font-medium text-slate-700 dark:text-slate-300">{r.hub}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{r.issues}</td>
+                  <tr key={r.hub} className="border-b border-white/5 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-2.5 font-medium text-slate-300">{r.hub}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-slate-100">{r.issues}</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                        r.hubSlaPct >= 80 ? "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800"
-                        : r.hubSlaPct >= 50 ? "bg-yellow-100 text-yellow-700 ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
-                        : "bg-red-100 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800"
+                        r.hubSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                        : r.hubSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
+                        : "bg-red-500/15 text-red-400 ring-red-500/20"
                       }`}>
                         {r.hubSlaPct}%
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-slate-600 dark:text-slate-400">
+                    <td className="px-3 py-2.5 text-right text-slate-400">
                       {r.avgReply !== null ? `${r.avgReply.toFixed(1)}h` : "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">{r.commentPct}%</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-slate-300">{r.commentPct}%</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                        r.resolvedPct >= 80 ? "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800"
-                        : r.resolvedPct >= 50 ? "bg-yellow-100 text-yellow-700 ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
-                        : "bg-red-100 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800"
+                        r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                        : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
+                        : "bg-red-500/15 text-red-400 ring-red-500/20"
                       }`}>
                         {r.resolvedPct}%
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                        r.kamScore >= 80 ? "bg-emerald-100 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800"
-                        : r.kamScore >= 50 ? "bg-yellow-100 text-yellow-700 ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
-                        : "bg-red-100 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800"
+                        r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                        : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
+                        : "bg-red-500/15 text-red-400 ring-red-500/20"
                       }`}>
                         {r.kamScore}
                       </span>

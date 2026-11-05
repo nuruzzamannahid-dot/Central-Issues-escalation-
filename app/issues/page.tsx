@@ -285,7 +285,7 @@ export default function IssueDetailPage() {
         <Nav email={user.email} name={access?.name ?? user.email.split("@")[0]} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-2xl px-4 py-10">
           <div className={`rounded-2xl border p-6 text-sm font-medium ${
-            canAccess ? "border-red-200 bg-red-50 text-red-700" : "border-red-200 bg-red-50 text-red-700"
+            canAccess ? "border-red-200 bg-red-500/10 text-red-400" : "border-red-200 bg-red-500/10 text-red-400"
           }`}>
             {error || "Issue not found."}
           </div>
@@ -371,7 +371,7 @@ export default function IssueDetailPage() {
                 <Detail label="Subcategory" value={issue.subcategory} />
                 <Detail label="Priority" value={issue.priority} />
               </div>
-              <div className="mt-6 border-t border-slate-100 pt-4">
+              <div className="mt-6 border-t border-white/5 pt-4">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Description
                 </div>
@@ -405,7 +405,7 @@ export default function IssueDetailPage() {
 
               <div className="mb-5 flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-3">
                 <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"}`}
                 >
                   {issue.ops_status ?? issue.status ?? "Open"}
                 </span>
@@ -482,7 +482,7 @@ export default function IssueDetailPage() {
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -499,7 +499,7 @@ export default function IssueDetailPage() {
                 onChange={(e) => setResolutionNote(e.target.value)}
                 rows={4}
                 placeholder="Add a resolution note…"
-                className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
+                className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
               />
 
               <button
@@ -519,7 +519,7 @@ export default function IssueDetailPage() {
                     CM Action
                   </h2>
                   {issue.cm_action && (
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${CM_ACTION_STYLE[issue.cm_action] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${CM_ACTION_STYLE[issue.cm_action] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"}`}>
                       {issue.cm_action}
                     </span>
                   )}
@@ -534,7 +534,7 @@ export default function IssueDetailPage() {
                   return (
                     <div
                       className={`mb-4 flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold ring-1 ring-inset ${
-                        s.level === "breach" ? "bg-red-50 text-red-700 ring-red-200" : "bg-amber-50 text-amber-700 ring-amber-200"
+                        s.level === "breach" ? "bg-red-500/10 text-red-400 ring-red-200" : "bg-amber-500/10 text-amber-400 ring-amber-200"
                       }`}
                     >
                       ⚠ {s.label}
@@ -629,7 +629,7 @@ export default function IssueDetailPage() {
                       onChange={(e) => setCmJustification(e.target.value)}
                       rows={3}
                       placeholder="Explain why pickup is not possible…"
-                      className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                      className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                     />
                     <div className="mt-2 flex items-center gap-2">
                       <button
@@ -641,7 +641,7 @@ export default function IssueDetailPage() {
                       </button>
                       <button
                         onClick={() => setCmJustification("")}
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+                        className="rounded-lg glass-input px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
                       >
                         Cancel
                       </button>
@@ -766,7 +766,7 @@ export default function IssueDetailPage() {
                       onChange={(e) => setKamJustification(e.target.value)}
                       rows={3}
                       placeholder="Explain why follow-up was not done within 2 hours…"
-                      className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                      className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                     />
                     <div className="mt-2 flex items-center gap-2">
                       <button
@@ -778,7 +778,7 @@ export default function IssueDetailPage() {
                       </button>
                       <button
                         onClick={() => setKamJustification("")}
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+                        className="rounded-lg glass-input px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
                       >
                         Cancel
                       </button>
@@ -840,7 +840,7 @@ function Detail({
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
         {label}
       </div>
-      <div className={`mt-0.5 text-sm font-medium text-slate-800 ${mono ? "font-mono" : ""}`}>
+      <div className={`mt-0.5 text-sm font-medium text-slate-300 ${mono ? "font-mono" : ""}`}>
         {value}
       </div>
     </div>

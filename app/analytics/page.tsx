@@ -235,10 +235,10 @@ export default function AnalyticsPage() {
               {access && (
                 <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
                   access.role === "Super Admin"
-                    ? "bg-purple-100 text-purple-800 ring-purple-200"
+                    ? "bg-purple-500/15 text-purple-400 ring-purple-500/20"
                     : access.role === "Team Lead"
-                    ? "bg-blue-100 text-blue-800 ring-blue-200"
-                    : "bg-slate-100 text-slate-600 ring-slate-200"
+                    ? "bg-blue-500/15 text-blue-400 ring-blue-500/20"
+                    : "bg-slate-500/15 text-slate-400 ring-slate-500/20"
                 }`}>
                   {access.role}
                 </span>
@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
               Issue escalation analytics · {access?.teamName ? `${access.teamName} team` : ""} · Updated {formatDateTime(new Date().toISOString())}
             </p>
           </div>
-          <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-lg glass-input bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             ← Back to Dashboard
           </Link>
         </div>
@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
                     <div className="h-6 flex-1 overflow-hidden rounded bg-slate-100">
                       <div className={`h-full rounded ${colors[idx % colors.length]} transition-all`} style={{ width: `${pct}%` }} />
                     </div>
-                    <div className="w-8 shrink-0 text-xs font-bold text-slate-800">{value}</div>
+                    <div className="w-8 shrink-0 text-xs font-bold text-slate-300">{value}</div>
                   </div>
                 );
               })}
@@ -338,7 +338,7 @@ export default function AnalyticsPage() {
                     <div className="h-6 flex-1 overflow-hidden rounded bg-slate-100">
                       <div className={`h-full rounded ${colors[idx % colors.length]} transition-all`} style={{ width: `${pct}%` }} />
                     </div>
-                    <div className="w-8 shrink-0 text-xs font-bold text-slate-800">{value}</div>
+                    <div className="w-8 shrink-0 text-xs font-bold text-slate-300">{value}</div>
                   </div>
                 );
               })}
@@ -361,14 +361,14 @@ export default function AnalyticsPage() {
             <div className="space-y-3">
               {byPriority.map(([label, value]) => {
                 const pct = stats.total > 0 ? (value / stats.total) * 100 : 0;
-                const style = PRIORITY_STYLE[label] ?? "bg-slate-100 text-slate-700";
+                const style = PRIORITY_STYLE[label] ?? "bg-slate-500/15 text-slate-400";
                 return (
                   <div key={label} className="flex items-center gap-3">
                     <span className={`inline-flex w-20 shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style}`}>{label}</span>
                     <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100">
                       <div className="h-full rounded bg-current opacity-30" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="w-8 shrink-0 text-right text-xs font-bold text-slate-800">{value}</span>
+                    <span className="w-8 shrink-0 text-right text-xs font-bold text-slate-300">{value}</span>
                     <span className="w-12 shrink-0 text-xs text-slate-400">{pct.toFixed(0)}%</span>
                   </div>
                 );
@@ -423,10 +423,10 @@ export default function AnalyticsPage() {
                       <td className="px-4 py-3 font-medium text-slate-900">{t.team}</td>
                       <td className="px-4 py-3 font-bold text-slate-700">{t.total}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">{t.open}</span>
+                        <span className="inline-flex rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">{t.open}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">{t.resolved}</span>
+                        <span className="inline-flex rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">{t.resolved}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -481,12 +481,12 @@ export default function AnalyticsPage() {
                         <div className="text-xs text-slate-400">{issue.subcategory}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${PRIORITY_STYLE[issue.priority] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${PRIORITY_STYLE[issue.priority] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"}`}>
                           {issue.priority}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLE[issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"}`}>
                           {issue.status}
                         </span>
                       </td>
@@ -602,7 +602,7 @@ function DonutChart({ data }: { data: [string, number][] }) {
           <div key={idx} className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full" style={{ backgroundColor: seg.color }} />
             <span className="font-medium text-slate-600">{seg.label}</span>
-            <span className="font-bold text-slate-800">{seg.value}</span>
+            <span className="font-bold text-slate-300">{seg.value}</span>
             <span className="text-slate-400">({seg.pct.toFixed(0)}%)</span>
           </div>
         ))}
