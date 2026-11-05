@@ -565,9 +565,12 @@ export default function IssueDetailPage() {
                 )}
 
                 {/* Action buttons */}
-                {canPerformCmAction(access.role, access.teamName, issue.cm_blocked) && (
+                {(() => {
+                  const cmSlaDetail = getCmActionSlaState(issue);
+                  const cmPickupSlaBreached = !issue.cm_action && cmSlaDetail.level === "breach";
+                  return canPerformCmAction(access.role, access.teamName, issue.cm_blocked) && (
                   <div className="flex flex-wrap gap-2">
-                    {!issue.cm_action && (
+                    {!issue.cm_action && (!cmPickupSlaBreached || issue.cm_justification_count > 0) && (
                       <button
                         onClick={() => setCmAction(issue.id, "Pickup")}
                         disabled={saving}
@@ -603,7 +606,7 @@ export default function IssueDetailPage() {
                         3rd Followup →
                       </button>
                     )}
-                    {!issue.cm_action && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
+                    {!issue.cm_action && cmPickupSlaBreached && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
                       <button
                         onClick={() => setCmJustification(cmJustification)}
                         className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
@@ -612,7 +615,8 @@ export default function IssueDetailPage() {
                       </button>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Justification textarea */}
                 {cmJustification && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
@@ -725,9 +729,12 @@ export default function IssueDetailPage() {
                 )}
 
                 {/* Action buttons */}
-                {canPerformKamAction(access.role, access.teamName, issue.kam_blocked) && (
+                {(() => {
+                  const kamSlaDetail = getKamActionSlaState(issue);
+                  const kamSlaBreached = !issue.kam_followup_at && kamSlaDetail.level === "breach";
+                  return canPerformKamAction(access.role, access.teamName, issue.kam_blocked) && (
                   <div className="flex flex-wrap gap-2">
-                    {!issue.kam_followup_at && (
+                    {!issue.kam_followup_at && (!kamSlaBreached || issue.kam_justification_count > 0) && (
                       <button
                         onClick={() => setKamAction(issue.id)}
                         disabled={saving}
@@ -736,7 +743,7 @@ export default function IssueDetailPage() {
                         ✓ Follow Up
                       </button>
                     )}
-                    {!issue.kam_followup_at && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
+                    {!issue.kam_followup_at && kamSlaBreached && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
                       <button
                         onClick={() => setKamJustification(kamJustification)}
                         className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
@@ -745,7 +752,8 @@ export default function IssueDetailPage() {
                       </button>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Justification textarea */}
                 {kamJustification && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (

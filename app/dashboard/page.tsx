@@ -733,6 +733,8 @@ export default function DashboardPage() {
                         issue.cm_blocked
                       );
                       const isJustifying = cmJustificationId === issue.id;
+                      const cmSla = getCmActionSlaState(issue);
+                      const cmPickupSlaBreached = !issue.cm_action && cmSla.level === "breach";
                       return (
                         <tr key={issue.id} className="transition hover:bg-slate-50">
                           <td className="px-4 py-3">
@@ -816,7 +818,7 @@ export default function DashboardPage() {
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-1.5">
-                                {!issue.cm_action && (
+                                {!issue.cm_action && (!cmPickupSlaBreached || issue.cm_justification_count > 0) && (
                                   <CmActionBtn
                                     label="Pick Up"
                                     color="violet"
@@ -857,6 +859,7 @@ export default function DashboardPage() {
                                   />
                                 )}
                                 {!issue.cm_action &&
+                                  cmPickupSlaBreached &&
                                   !issue.cm_blocked &&
                                   issue.cm_justification_count <
                                     CM_JUSTIFICATION_MAX && (
@@ -930,6 +933,8 @@ export default function DashboardPage() {
                       issue.kam_blocked
                     );
                     const isJustifying = kamJustificationId === issue.id;
+                    const kamSla = getKamActionSlaState(issue);
+                    const kamSlaBreached = !issue.kam_followup_at && kamSla.level === "breach";
                     return (
                       <tr key={issue.id} className="transition hover:bg-slate-50">
                         <td className="px-4 py-3">
@@ -1022,7 +1027,7 @@ export default function DashboardPage() {
                             </div>
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
-                              {!issue.kam_followup_at && (
+                              {!issue.kam_followup_at && (!kamSlaBreached || issue.kam_justification_count > 0) && (
                                 <KamActionBtn
                                   label="Follow Up"
                                   color="violet"
