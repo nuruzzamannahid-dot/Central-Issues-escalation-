@@ -18,6 +18,7 @@ import {
   PRIORITIES,
   SLA_STYLE,
   type Issue,
+  autoSyncStatusFromRemarks,
 } from "@/lib/supabase";
 
 type Kam = { id: string; full_name: string; email: string; phone: string | null };
@@ -89,8 +90,11 @@ export default function AnalyticsPage() {
         ? allIssues.filter((i) => kamIds.includes(i.kam_id))
         : [];
 
+      // Auto-sync status from remarks
+      const synced = await autoSyncStatusFromRemarks(visibleIssues);
+
       setKam(kamRes.data ?? null);
-      setIssues(visibleIssues);
+      setIssues(synced);
       setLoading(false);
     })();
     return () => {

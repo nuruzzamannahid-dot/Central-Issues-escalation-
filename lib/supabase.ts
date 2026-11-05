@@ -70,6 +70,7 @@ export const STATUSES = [
   "Resolved",
   "Not Remarks",
   "Improper",
+  "Pending Review",
 ] as const;
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 
@@ -79,6 +80,7 @@ export const STATUS_STYLE: Record<string, string> = {
   Resolved: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
   "Not Remarks": "bg-sky-500/15 text-sky-400 ring-sky-500/20",
   Improper: "bg-red-500/15 text-red-400 ring-red-500/20",
+  "Pending Review": "bg-violet-500/15 text-violet-400 ring-violet-500/20",
 };
 
 /* ----------------------------------------------------------------------- *
@@ -472,4 +474,55 @@ export function makeReferenceNo(): string {
   const dd = String(d.getDate()).padStart(2, "0");
   const rand = String(Math.floor(1000 + Math.random() * 9000));
   return `ESC-${yy}${mm}${dd}-${rand}`;
+}
+
+/* ----------------------------------------------------------------------- *
+ *  Auto status sync from remarks                                          *
+ *  • If ops_remark1 exists but status is "Open" → auto-set "In Progress"  *
+ *  • If ops_remark2 exists but status is "Open" or "In Progress" →         *
+ *    auto-set "Resolved" (KAM can override later)                         *
+ *  This runs after loading issues, before rendering.                      *
+ * ----------------------------------------------------------------------- */
+
+export async function autoSyncStatusFromRemarks(
+  issues: Issue[]
+): Promise<Issue[]> {
+  if (!issues || issues.length === 0) return issues;
+
+  const toUpdate: { id: string; status: Issue["status"] }[] = [];
+
+  for (const issue of issues) {
+    if (issue.ops_remark1 && issue.status === "Open") {
+      // 1st remarks added → auto "In Progress"
+      toUpdate.push({ id: issue.id, status: "In Progress" });
+    }
+  }
+
+  if (toUpdate.length === 0) return issues;
+
+  // Update each issue individually (Supabase JS client doesn't support batch update)
+  await Promise.all(
+    toUpdate.map((u) =>
+      supabase
+        .from("issues")
+        .update({ status: u.status, updated_at: new Date().toISOString() })
+        .eq("id", u.id)
+    )
+  );
+
+  // Update local array
+  const updatedMap = new Map(toUpdate.map((u) => [u.id, u.status]));
+  return issues.map((i) =>
+    updatedMap.has(i.id) ? { ...i, status: updatedMap.get(i.id)! } : i
+  );
+}
+
+/** Returns the "effective" display status for an issue.
+ *  If ops_remark2 exists and status is still "Open"/"In Progress",
+ *  shows "Pending Review" to indicate KAM needs to decide. */
+export function getEffectiveStatus(issue: Issue): string {
+  if (issue.ops_remark2 && (issue.status === "Open" || issue.status === "In Progress")) {
+    return "Pending Review";
+  }
+  return issue.status;
 }

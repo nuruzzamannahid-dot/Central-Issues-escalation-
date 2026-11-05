@@ -16,6 +16,7 @@ import {
   canUseCmAction,
   getKamActionSlaState,
   canUseKamAction,
+  autoSyncStatusFromRemarks,
   type Issue,
 } from "@/lib/supabase";
 
@@ -110,7 +111,13 @@ export default function DashboardPage() {
       ]);
 
       if (!mounted) return;
-      setIssues(issueRes.data ?? []);
+      let loadedIssues = issueRes.data ?? [];
+
+      // Auto-sync status from remarks: if ops_remark1 exists but status is "Open",
+      // auto-set to "In Progress". This handles Google Sheet syncs that don't update status.
+      loadedIssues = await autoSyncStatusFromRemarks(loadedIssues);
+
+      setIssues(loadedIssues);
       setCategories(catRes.data ?? []);
 
       // Fetch all KAMs for team performance
@@ -555,7 +562,7 @@ export default function DashboardPage() {
   const statusColors: Record<string, string> = {
     "Open": "#3b82f6", "In Progress": "#8b5cf6", "Resolved": "#10b981",
     "Solved": "#10b981", "Closed": "#6b7280", "Re-opened": "#f59e0b",
-    "Not Remarks": "#ef4444", "Improper": "#dc2626",
+    "Not Remarks": "#ef4444", "Improper": "#dc2626", "Pending Review": "#a855f7",
   };
   const statusDonut = (() => {
     const segments = statusDist.map((s, i) => ({

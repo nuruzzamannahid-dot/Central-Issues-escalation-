@@ -14,6 +14,7 @@ import {
   PRIORITIES,
   SLA_STYLE,
   type Issue,
+  autoSyncStatusFromRemarks,
 } from "@/lib/supabase";
 
 type Kam = { id: string; full_name: string; email: string; phone: string | null };
@@ -96,7 +97,9 @@ export default function HubsPage() {
         .limit(2000);
 
       if (!mounted) return;
-      setIssues(issueData ?? []);
+      let loaded = issueData ?? [];
+          loaded = await autoSyncStatusFromRemarks(loaded);
+          setIssues(loaded);
       setLoading(false);
     })();
     return () => {

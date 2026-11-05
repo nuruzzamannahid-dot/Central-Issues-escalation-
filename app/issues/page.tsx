@@ -26,6 +26,7 @@ import {
   canUseKamAction,
   canPerformKamAction,
   KAM_JUSTIFICATION_MAX,
+  autoSyncStatusFromRemarks,
   type Issue,
 } from "@/lib/supabase";
 
@@ -93,11 +94,14 @@ export default function IssueDetailPage() {
         } else {
           // Check if user can access this issue (kam_id in accessible teams)
           const kamIds = await getKamIdsForTeams(acc.accessibleTeams);
-          const iss = data as Issue;
+          let iss = data as Issue;
           if (!kamIds.includes(iss.kam_id)) {
             setCanAccess(false);
             setError("Access denied — this issue belongs to another team.");
           } else {
+            // Auto-sync status from remarks
+            const synced = await autoSyncStatusFromRemarks([iss]);
+            iss = synced[0] ?? iss;
             setIssue(iss);
             setNewStatus(iss.status);
             setResolutionNote(iss.resolution_note ?? "");

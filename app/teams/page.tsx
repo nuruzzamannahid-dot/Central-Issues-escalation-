@@ -13,6 +13,7 @@ import {
   PRIORITIES,
   SLA_STYLE,
   type Issue,
+  autoSyncStatusFromRemarks,
 } from "@/lib/supabase";
 
 type Kam = { id: string; full_name: string; email: string; phone: string | null };
@@ -95,7 +96,9 @@ export default function TeamsPage() {
       ]);
 
       if (!mounted) return;
-      setIssues(issueRes.data ?? []);
+      let loaded = issueRes.data ?? [];
+      loaded = await autoSyncStatusFromRemarks(loaded);
+      setIssues(loaded);
       setKams(kamRes.data ?? []);
       setLoading(false);
     })();
