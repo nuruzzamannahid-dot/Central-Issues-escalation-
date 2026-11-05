@@ -66,7 +66,7 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-md animate-fade-up">
         <div className="mb-6 flex flex-col items-center">
-          <img src="/logo.png" alt="Logo" className="h-16 max-w-[300px] object-contain shadow-lg" />
+          <img src="/logo.jpg" alt="Logo" className="h-16 max-w-[300px] object-contain shadow-lg" />
           <h1 className="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">
             KAM Issue Escalation Portal
           </h1>
