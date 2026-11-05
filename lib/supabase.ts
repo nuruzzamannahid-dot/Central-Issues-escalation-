@@ -34,6 +34,13 @@ export type Issue = {
   ops_remark2_at: string | null;
   ops_status: "Open" | "In Progress" | "Solved";
   ops_status_at: string | null;
+  // CM Action — IB issue pickup & follow-up workflow
+  cm_action: "Pickup" | "1st Followup" | "2nd Followup" | "3rd Followup" | null;
+  cm_action_at: string | null;
+  cm_justification: string | null;
+  cm_justification_count: number;
+  cm_blocked: boolean;
+  cm_picked_by: string | null;
 };
 
 export const OPS_STATUSES = ["Open", "In Progress", "Solved"] as const;
@@ -127,6 +134,87 @@ export const SLA_STYLE: Record<string, string> = {
   breach: "bg-amber-100 text-amber-800 ring-amber-200",
   critical: "bg-red-100 text-red-800 ring-red-200",
 };
+
+/* ----------------------------------------------------------------------- *
+ *  CM Action — IB issue pickup & follow-up workflow                       *
+ *  • Pickup SLA: 20 min from issue creation                              *
+ *  • 1st Followup SLA: 2 hours from pickup                               *
+ *  • 2nd Followup SLA: 1.5 hours from 1st followup                       *
+ *  • 3rd Followup SLA: 1 hour from 2nd followup                          *
+ *  • If pickup SLA breached → member can give justification (max 2)      *
+ *  • After 2 justifications → cm_blocked = true, only Lead can pick up   *
+ *  • CM Action section shows only IB issues                               *
+ *  • Visible to: CM members, CM Team Lead, Super Admin                   *
+ * ----------------------------------------------------------------------- */
+
+export const CM_ACTIONS = ["Pickup", "1st Followup", "2nd Followup", "3rd Followup"] as const;
+export type CmAction = "Pickup" | "1st Followup" | "2nd Followup" | "3rd Followup" | null;
+
+export const PICKUP_SLA_MINUTES = 20;
+export const FOLLOWUP1_SLA_HOURS = 2;
+export const FOLLOWUP2_SLA_HOURS = 1.5;
+export const FOLLOWUP3_SLA_HOURS = 1;
+
+export type CmActionSlaState = {
+  level: "ok" | "breach" | "critical";
+  label: string;
+  deadline: Date | null;
+};
+
+/** Returns the CM Action SLA state for an issue. */
+export function getCmActionSlaState(
+  issue: Pick<Issue, "created_at" | "cm_action" | "cm_action_at">,
+  now: Date = new Date()
+): CmActionSlaState {
+  const created = issue.created_at ? new Date(issue.created_at) : null;
+  const actionAt = issue.cm_action_at ? new Date(issue.cm_action_at) : null;
+
+  if (!issue.cm_action || !issue.cm_action_at) {
+    // No action yet — pickup SLA applies (20 min from creation)
+    if (created) {
+      const deadline = new Date(created.getTime() + PICKUP_SLA_MINUTES * 60000);
+      if (now.getTime() > deadline.getTime()) {
+        return { level: "breach", label: "SLA BREACH — Pickup overdue", deadline };
+      }
+    }
+    return { level: "ok", label: "", deadline: null };
+  }
+
+  // Action in progress — SLA depends on which action
+  if (issue.cm_action === "Pickup") {
+    // After pickup, 1st followup SLA applies (2 hours)
+    const deadline = new Date(actionAt.getTime() + FOLLOWUP1_SLA_HOURS * 3600000);
+    if (now.getTime() > deadline.getTime()) {
+      return { level: "breach", label: "SLA BREACH — 1st Followup overdue", deadline };
+    }
+  } else if (issue.cm_action === "1st Followup") {
+    // 2nd followup SLA (1.5 hours)
+    const deadline = new Date(actionAt.getTime() + FOLLOWUP2_SLA_HOURS * 3600000);
+    if (now.getTime() > deadline.getTime()) {
+      return { level: "breach", label: "SLA BREACH — 2nd Followup overdue", deadline };
+    }
+  } else if (issue.cm_action === "2nd Followup") {
+    // 3rd followup SLA (1 hour)
+    const deadline = new Date(actionAt.getTime() + FOLLOWUP3_SLA_HOURS * 3600000);
+    if (now.getTime() > deadline.getTime()) {
+      return { level: "breach", label: "SLA BREACH — 3rd Followup overdue", deadline };
+    }
+  } else if (issue.cm_action === "3rd Followup") {
+    // After 3rd followup — no more SLA
+    return { level: "ok", label: "3rd Followup done", deadline: null };
+  }
+
+  return { level: "ok", label: "", deadline: null };
+}
+
+export const CM_ACTION_STYLE: Record<string, string> = {
+  "Pickup": "bg-violet-100 text-violet-800 ring-violet-200",
+  "1st Followup": "bg-blue-100 text-blue-800 ring-blue-200",
+  "2nd Followup": "bg-sky-100 text-sky-800 ring-sky-200",
+  "3rd Followup": "bg-emerald-100 text-emerald-800 ring-emerald-200",
+};
+
+export const CM_JUSTIFICATION_MAX = 2;
 
 export const PRIORITY_STYLE: Record<string, string> = {
   Low: "bg-slate-100 text-slate-700 ring-slate-200",
@@ -256,6 +344,30 @@ export function describeAccess(role: string, teamName: string): string {
   const teams = getAccessibleTeamNames(role, teamName);
   if (teams.includes("__ALL__")) return "Sees all issues";
   return `Sees ${teams.join(" + ")} issues`;
+}
+
+/** Returns true if the user's access allows them to see/use the CM Action section.
+ *  CM Action is for IB issues — visible to CM members, CM Team Lead, and Super Admin. */
+export function canUseCmAction(role: string, teamName: string): boolean {
+  if (role === "Super Admin") return true;
+  if (role === "Team Lead" && teamName === "CM") return true;
+  if (role === "Member" && teamName === "CM") return true;
+  if (role === "CM" && teamName === "CM") return true;
+  return false;
+}
+
+/** Returns true if the user can perform CM actions on an issue (pickup, follow-up, justification).
+ *  Members are blocked after 2 justifications — only Lead/Super Admin can act on blocked issues. */
+export function canPerformCmAction(
+  role: string,
+  teamName: string,
+  issueCmBlocked: boolean
+): boolean {
+  if (issueCmBlocked) {
+    // Blocked — only Lead or Super Admin can act
+    return role === "Super Admin" || (role === "Team Lead" && teamName === "CM");
+  }
+  return canUseCmAction(role, teamName);
 }
 
 /** Fetches the list of KAM ids whose emails belong to the given teams. */

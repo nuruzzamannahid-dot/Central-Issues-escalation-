@@ -41,7 +41,7 @@ export default function EscalatePage() {
       const email = session.user.email ?? "";
       setUser({ email });
 
-      // Check RBAC — only Super Admin and Team Lead can escalate
+      // Check RBAC — all authenticated team members can escalate
       const acc = await getUserAccess(email);
       if (!acc) {
         setDenied(true);
@@ -49,12 +49,6 @@ export default function EscalatePage() {
         return;
       }
       setAccess({ role: acc.role, teamName: acc.teamName, name: acc.name });
-
-      if (acc.role !== "Super Admin" && acc.role !== "Team Lead") {
-        setDenied(true);
-        setLoading(false);
-        return;
-      }
 
       const [zoneRes, hubRes, catRes] = await Promise.all([
         supabase.from("zones").select("code,name").order("code"),
@@ -176,7 +170,7 @@ export default function EscalatePage() {
         <Nav email={user.email} name={user.email.split("@")[0]} />
         <div className="mx-auto max-w-2xl px-4 py-10">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-700">
-            Access denied — only Super Admins and Team Leads can escalate issues.
+            Access denied — your email is not in the team member list. Contact your administrator.
           </div>
           <Link
             href="/dashboard"

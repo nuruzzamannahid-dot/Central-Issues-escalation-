@@ -14,8 +14,14 @@ import {
   OPS_STATUS_STYLE,
   getSlaState,
   SLA_STYLE,
+  getCmActionSlaState,
+  CM_ACTIONS,
+  CM_ACTION_STYLE,
+  CM_JUSTIFICATION_MAX,
   getUserAccess,
   getKamIdsForTeams,
+  canUseCmAction,
+  canPerformCmAction,
   type Issue,
 } from "@/lib/supabase";
 
@@ -36,6 +42,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  // CM Action state
+  const [ibKamIds, setIbKamIds] = useState<string[]>([]);
+  const [cmJustification, setCmJustification] = useState("");
+  const [cmJustificationId, setCmJustificationId] = useState<string | null>(null);
+  const [cmUpdatingId, setCmUpdatingId] = useState<string | null>(null);
 
   // filters
   const [search, setSearch] = useState("");
@@ -112,6 +123,10 @@ export default function DashboardPage() {
 
       setKam(kamRes.data ?? null);
       setIssues(visibleIssues);
+
+      // Fetch IB KAM ids for the CM Action section
+      const ibIds = await getKamIdsForTeams(["IB"]);
+      if (mounted) setIbKamIds(ibIds);
       setZones(zoneRes.data ?? []);
       setHubs(hubRes.data ?? []);
       setCategories(Array.from(new Set((catRes.data ?? []).map((c) => c.name))).sort());
@@ -206,6 +221,69 @@ export default function DashboardPage() {
     );
   }
 
+  // CM Action functions
+  async function setCmAction(id: string, action: string) {
+    setCmUpdatingId(id);
+    const update: Record<string, unknown> = {
+      cm_action: action,
+      cm_action_at: new Date().toISOString(),
+    };
+    if (action === "Pickup") {
+      update.cm_picked_by = user!.email;
+    }
+    const { error } = await supabase
+      .from("issues")
+      .update(update)
+      .eq("id", id);
+    setCmUpdatingId(null);
+    if (error) setError(error.message);
+    setIssues((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              cm_action: action as Issue["cm_action"],
+              cm_action_at: new Date().toISOString(),
+              cm_picked_by: action === "Pickup" ? user!.email : i.cm_picked_by,
+            } as Issue
+          : i
+      )
+    );
+  }
+
+  async function giveJustification(id: string, text: string) {
+    setCmUpdatingId(id);
+    const issue = issues.find((i) => i.id === id);
+    const newCount = (issue?.cm_justification_count ?? 0) + 1;
+    const update: Record<string, unknown> = {
+      cm_justification: text.trim(),
+      cm_justification_count: newCount,
+    };
+    if (newCount >= CM_JUSTIFICATION_MAX) {
+      update.cm_blocked = true;
+    }
+    const { error } = await supabase
+      .from("issues")
+      .update(update)
+      .eq("id", id);
+    setCmUpdatingId(null);
+    setCmJustification("");
+    setCmJustificationId(null);
+    if (error) setError(error.message);
+    setIssues((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              cm_justification: text.trim(),
+              cm_justification_count: newCount,
+              cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
+            } as Issue
+          : i
+      )
+    );
+  }
+
   function resetFilters() {
     setSearch("");
     setFStatus("");
@@ -260,7 +338,7 @@ export default function DashboardPage() {
               {access?.teamName ? `${access.teamName} team` : "here are your escalated issues"}.
             </p>
           </div>
-          {access?.canEscalate && (
+          {access && (
             <Link
               href="/escalate"
               className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-brand-200 transition hover:bg-brand-600"
@@ -389,20 +467,21 @@ export default function DashboardPage() {
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Priority</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">CM Action</th>
                   <th className="px-4 py-3">Created</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                    <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
                       Loading issues…
                     </td>
                   </tr>
                 )}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center">
+                    <td colSpan={9} className="px-4 py-10 text-center">
                       <p className="font-medium text-slate-600">No issues match your filters.</p>
                       <p className="mt-1 text-xs text-slate-400">
                         {issues.length === 0
@@ -461,6 +540,42 @@ export default function DashboardPage() {
                         ))}
                       </select>
                     </td>
+                    <td className="px-4 py-3">
+                      {ibKamIds.includes(issue.kam_id) &&
+                      access &&
+                      canUseCmAction(access.role, access.teamName) ? (
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                              issue.cm_action
+                                ? CM_ACTION_STYLE[issue.cm_action] ??
+                                  "bg-slate-100 text-slate-700 ring-slate-200"
+                                : "bg-slate-100 text-slate-500 ring-slate-200"
+                            }`}
+                          >
+                            {issue.cm_action ?? "Pending"}
+                          </span>
+                          {(() => {
+                            const s = getCmActionSlaState(issue);
+                            if (s.level === "ok" && issue.cm_action)
+                              return null;
+                            return (
+                              <span
+                                className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
+                                  s.level === "critical"
+                                    ? "bg-red-100 text-red-800 ring-red-200"
+                                    : "bg-amber-100 text-amber-800 ring-amber-200"
+                                }`}
+                              >
+                                ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       {formatDate(issue.created_at)}
                     </td>
@@ -470,6 +585,205 @@ export default function DashboardPage() {
             </table>
           </div>
         </div>
+
+        {/* CM Action — IB issues only */}
+        {access && canUseCmAction(access.role, access.teamName) && (
+          <div className="mt-8 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+            <div className="border-b border-violet-100 bg-violet-50 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700">
+                  CM Action — IB Issues
+                </h2>
+                <span className="text-[11px] text-violet-500">
+                  Pickup SLA: 20 min · 1st Followup: 2h · 2nd Followup: 1.5h · 3rd Followup: 1h
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <th className="px-4 py-3">Reference</th>
+                    <th className="px-4 py-3">CM Action</th>
+                    <th className="px-4 py-3">SLA</th>
+                    <th className="px-4 py-3">Justification</th>
+                    <th className="px-4 py-3">Picked By</th>
+                    <th className="px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filtered
+                    .filter((i) => ibKamIds.includes(i.kam_id))
+                    .map((issue) => {
+                      const canAct = canPerformCmAction(
+                        access.role,
+                        access.teamName,
+                        issue.cm_blocked
+                      );
+                      const isJustifying = cmJustificationId === issue.id;
+                      return (
+                        <tr key={issue.id} className="transition hover:bg-slate-50">
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/issues?id=${issue.id}`}
+                              className="font-mono text-xs font-semibold text-brand hover:underline"
+                            >
+                              {issue.reference_no}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                                  issue.cm_action
+                                    ? CM_ACTION_STYLE[issue.cm_action] ??
+                                      "bg-slate-100 text-slate-700 ring-slate-200"
+                                    : "bg-slate-100 text-slate-500 ring-slate-200"
+                                }`}
+                              >
+                                {issue.cm_action ?? "Pending"}
+                              </span>
+                              {issue.cm_blocked && (
+                                <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800 ring-1 ring-inset ring-red-200">
+                                  BLOCKED
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <CmActionSlaBadge issue={issue} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="whitespace-pre-wrap text-xs text-slate-700">
+                              {issue.cm_justification || "—"}
+                            </div>
+                            {issue.cm_justification_count > 0 && (
+                              <div className="mt-1 text-[11px] text-slate-400">
+                                {issue.cm_justification_count} / {CM_JUSTIFICATION_MAX} used
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-slate-500">
+                            {issue.cm_picked_by ?? "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {isJustifying ? (
+                              <div className="flex flex-col gap-2">
+                                <textarea
+                                  value={cmJustification}
+                                  onChange={(e) =>
+                                    setCmJustification(e.target.value)
+                                  }
+                                  rows={2}
+                                  placeholder="Enter justification for not picking up…"
+                                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() =>
+                                      giveJustification(issue.id, cmJustification)
+                                    }
+                                    disabled={
+                                      cmUpdatingId === issue.id ||
+                                      !cmJustification.trim()
+                                    }
+                                    className="rounded-lg bg-violet-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+                                  >
+                                    Submit
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setCmJustificationId(null);
+                                      setCmJustification("");
+                                    }}
+                                    className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {!issue.cm_action && (
+                                  <CmActionBtn
+                                    label="Pick Up"
+                                    color="violet"
+                                    disabled={!canAct || cmUpdatingId === issue.id}
+                                    onClick={() =>
+                                      setCmAction(issue.id, "Pickup")
+                                    }
+                                  />
+                                )}
+                                {issue.cm_action === "Pickup" && (
+                                  <CmActionBtn
+                                    label="1st Followup"
+                                    color="blue"
+                                    disabled={!canAct || cmUpdatingId === issue.id}
+                                    onClick={() =>
+                                      setCmAction(issue.id, "1st Followup")
+                                    }
+                                  />
+                                )}
+                                {issue.cm_action === "1st Followup" && (
+                                  <CmActionBtn
+                                    label="2nd Followup"
+                                    color="sky"
+                                    disabled={!canAct || cmUpdatingId === issue.id}
+                                    onClick={() =>
+                                      setCmAction(issue.id, "2nd Followup")
+                                    }
+                                  />
+                                )}
+                                {issue.cm_action === "2nd Followup" && (
+                                  <CmActionBtn
+                                    label="3rd Followup"
+                                    color="emerald"
+                                    disabled={!canAct || cmUpdatingId === issue.id}
+                                    onClick={() =>
+                                      setCmAction(issue.id, "3rd Followup")
+                                    }
+                                  />
+                                )}
+                                {!issue.cm_action &&
+                                  !issue.cm_blocked &&
+                                  issue.cm_justification_count <
+                                    CM_JUSTIFICATION_MAX && (
+                                  <CmActionBtn
+                                    label="Justify"
+                                    color="amber"
+                                    onClick={() => {
+                                      setCmJustificationId(issue.id);
+                                      setCmJustification("");
+                                    }}
+                                  />
+                                  )}
+                                {issue.cm_blocked && !canAct && (
+                                  <span className="text-[11px] text-red-500">
+                                    Lead action required
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  {filtered.filter((i) => ibKamIds.includes(i.kam_id)).length ===
+                    0 && (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-4 py-10 text-center text-slate-400"
+                      >
+                        No IB issues to show.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <p className="mt-4 text-xs text-slate-400">
           Showing {filtered.length} of {issues.length} issues ·{" "}
@@ -603,6 +917,61 @@ function SlaBadge({ issue }: { issue: Issue }) {
         </div>
       )}
     </div>
+  );
+}
+
+function CmActionSlaBadge({ issue }: { issue: Issue }) {
+  const s = getCmActionSlaState(issue);
+  if (s.level === "ok") {
+    return <span className="text-[11px] text-slate-400">—</span>;
+  }
+  return (
+    <div>
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
+          s.level === "critical"
+            ? "bg-red-100 text-red-800 ring-red-200"
+            : "bg-amber-100 text-amber-800 ring-amber-200"
+        }`}
+      >
+        ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
+      </span>
+      {s.deadline && (
+        <div className="mt-1 text-[11px] text-slate-400">
+          Deadline {formatDateTime(s.deadline.toISOString())}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CmActionBtn({
+  label,
+  color,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  color: "violet" | "blue" | "sky" | "emerald" | "amber";
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const colors: Record<string, string> = {
+    violet: "bg-violet-100 text-violet-800 ring-violet-200 hover:bg-violet-200",
+    blue: "bg-blue-100 text-blue-800 ring-blue-200 hover:bg-blue-200",
+    sky: "bg-sky-100 text-sky-800 ring-sky-200 hover:bg-sky-200",
+    emerald:
+      "bg-emerald-100 text-emerald-800 ring-emerald-200 hover:bg-emerald-200",
+    amber: "bg-amber-100 text-amber-800 ring-amber-200 hover:bg-amber-200",
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-lg px-3 py-1 text-xs font-semibold ring-1 ring-inset transition disabled:opacity-40 ${colors[color]}`}
+    >
+      {label}
+    </button>
   );
 }
 
