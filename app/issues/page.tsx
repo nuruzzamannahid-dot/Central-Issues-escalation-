@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
+import { Icon } from "@/components/icons";
 import { PriorityBadge, StatusBadge } from "@/components/ui";
 import {
   formatDateTime,
@@ -266,7 +267,7 @@ export default function IssueDetailPage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-400 dark:text-slate-500">
+      <div className="flex min-h-screen items-center justify-center text-muted">
         Loading…
       </div>
     );
@@ -276,7 +277,7 @@ export default function IssueDetailPage() {
     return (
       <>
         <Nav email={user.email} name={access?.name ?? user.email.split("@")[0]} role={access?.role} teamName={access?.teamName} />
-        <div className="flex min-h-[60vh] items-center justify-center text-slate-400 dark:text-slate-500">
+        <div className="flex min-h-[60vh] items-center justify-center text-muted">
           Loading issue…
         </div>
       </>
@@ -289,13 +290,13 @@ export default function IssueDetailPage() {
         <Nav email={user.email} name={access?.name ?? user.email.split("@")[0]} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-2xl px-4 py-10">
           <div className={`rounded-2xl border p-6 text-sm font-medium ${
-            canAccess ? "border-red-200 bg-red-500/10 text-red-600 dark:text-red-400" : "border-red-200 bg-red-500/10 text-red-600 dark:text-red-400"
+            canAccess ? "border-red-500/30 dark:border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400" : "border-red-500/30 dark:border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400"
           }`}>
             {error || "Issue not found."}
           </div>
           <Link
             href="/dashboard"
-            className="mt-4 inline-block text-sm font-medium text-brand hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-link hover:underline"
           >
             ← Back to dashboard
           </Link>
@@ -312,37 +313,35 @@ export default function IssueDetailPage() {
         <div className="mb-2">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-link hover:underline"
           >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-1.02 0L6.45 9.97a.75.75 0 000 1.02l5.32 5.74a.75.75 0 11-1.02 1.02l-5.74-5.32a.75.75 0 00-1.02 0l-5.32 5.74a.75.75 0 11-1.02-1.02l5.74-5.32a.75.75 0 010-1.02z" clipRule="evenodd" />
-            </svg>
+            <Icon name="arrow-left" className="h-4 w-4" />
             Back to dashboard
           </Link>
         </div>
 
         {created && (
-          <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            ✓ Issue escalated successfully — {issue.reference_no}
+          <div className="mb-6 rounded-lg border border-emerald-500/30 dark:border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+            <Icon name="check" className="h-4 w-4 shrink-0" /> Issue escalated successfully — {issue.reference_no}
           </div>
         )}
 
         {/* Header card */}
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 glass rounded-2xl p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="font-mono text-lg font-bold text-slate-900">
+                <h1 className="font-mono text-lg font-bold text-primary">
                   {issue.reference_no}
                 </h1>
                 <StatusBadge status={issue.status} />
                 <PriorityBadge priority={issue.priority} />
               </div>
-              <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+              <p className="mt-1 text-sm text-muted">
                 {issue.merchant_name}
                 {issue.parcel_id ? ` · ${issue.parcel_id}` : ""}
               </p>
-              <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 text-xs text-muted">
                 Escalated {formatDateTime(issue.created_at)}
                 {issue.updated_at !== issue.created_at
                   ? ` · Updated ${formatDateTime(issue.updated_at)}`
@@ -351,7 +350,7 @@ export default function IssueDetailPage() {
             </div>
             <button
               onClick={removeIssue}
-              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+              className="rounded-lg border border-red-500/30 dark:border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-500/10 dark:bg-red-500/15"
             >
               Delete Issue
             </button>
@@ -361,8 +360,8 @@ export default function IssueDetailPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Details */}
           <div className="space-y-6 lg:col-span-2">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <section className="glass rounded-2xl p-6">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">
                 Issue Details
               </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -375,45 +374,45 @@ export default function IssueDetailPage() {
                 <Detail label="Subcategory" value={issue.subcategory} />
                 <Detail label="Priority" value={issue.priority} />
               </div>
-              <div className="mt-6 border-t border-black/5 dark:border-white/5 pt-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <div className="mt-6 border-t border-token-light pt-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted">
                   Description
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-secondary">
                   {issue.description}
                 </p>
               </div>
             </section>
 
             {issue.resolution_note && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <section className="glass rounded-2xl p-6">
+                <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
                   Resolution Note
                 </h2>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-secondary">
                   {issue.resolution_note}
                 </p>
               </section>
             )}
 
             {/* OPS follow-up — entered by OPS staff in the Google Sheet */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="glass rounded-2xl p-6">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
                   OPS Follow-up
                 </h2>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] text-muted">
                   Entered in Google Sheet “Central Issues Escalation”
                 </span>
               </div>
 
-              <div className="mb-5 flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-3">
+              <div className="mb-5 flex items-center gap-3 rounded-lg bg-surface-muted px-4 py-3">
                 <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20"}`}
+                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-surface-muted text-muted ring-token"}`}
                 >
                   {issue.ops_status ?? issue.status ?? "Open"}
                 </span>
-                <span className="text-xs text-slate-400 dark:text-slate-500">
+                <span className="text-xs text-muted">
                   Status (synced with KAM status) ·{" "}
                   {issue.ops_status_at
                     ? `set ${formatDateTime(issue.ops_status_at)}`
@@ -425,8 +424,8 @@ export default function IssueDetailPage() {
                 const s = getSlaState(issue);
                 if (s.level === "ok") {
                   return (
-                    <div className="mb-5 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-700">
-                      ✓ SLA on track — 1st remarks within {REMARK1_WINDOW_HOURS}h of escalation, 2nd remarks within {REMARK2_WINDOW_HOURS}h of the 1st.
+                    <div className="mb-5 flex items-center gap-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 px-4 py-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                      <Icon name="check" className="h-4 w-4 shrink-0" /> SLA on track — 1st remarks within {REMARK1_WINDOW_HOURS}h of escalation, 2nd remarks within {REMARK2_WINDOW_HOURS}h of the 1st.
                     </div>
                   );
                 }
@@ -434,7 +433,7 @@ export default function IssueDetailPage() {
                   <div
                     className={`mb-5 flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold ring-1 ring-inset ${SLA_STYLE[s.level]}`}
                   >
-                    ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"} —{" "}
+                    <Icon name="alert" className="h-4 w-4 shrink-0" /> {s.level === "critical" ? "CRITICAL" : "SLA BREACH"} —{" "}
                     {s.level === "critical"
                       ? `2nd remarks due within ${REMARK2_WINDOW_HOURS}h of the 1st remarks`
                       : `1st remarks due within ${REMARK1_WINDOW_HOURS}h of escalation`}
@@ -449,24 +448,24 @@ export default function IssueDetailPage() {
 
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">
                     Ops Remark 1
                   </div>
-                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-secondary">
                     {issue.ops_remark1 || "—"}
                   </p>
-                  <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                  <div className="mt-1 text-[11px] text-muted">
                     {issue.ops_remark1_at ? `Added ${formatDateTime(issue.ops_remark1_at)}` : "Not added"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">
                     Ops Remark 2
                   </div>
-                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-secondary">
                     {issue.ops_remark2 || "—"}
                   </p>
-                  <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                  <div className="mt-1 text-[11px] text-muted">
                     {issue.ops_remark2_at ? `Added ${formatDateTime(issue.ops_remark2_at)}` : "Not added"}
                   </div>
                 </div>
@@ -476,17 +475,18 @@ export default function IssueDetailPage() {
 
           {/* Update panel */}
           <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <section className="glass rounded-2xl p-6">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">
                 Update Status
               </h2>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <label htmlFor="issue-status" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Status
               </label>
               <select
+                id="issue-status"
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
+                className="w-full rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-500/30"
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -495,21 +495,22 @@ export default function IssueDetailPage() {
                 ))}
               </select>
 
-              <label className="mt-4 mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <label htmlFor="issue-resolution-note" className="mt-4 mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Resolution Note
               </label>
               <textarea
+                id="issue-resolution-note"
                 value={resolutionNote}
                 onChange={(e) => setResolutionNote(e.target.value)}
                 rows={4}
                 placeholder="Add a resolution note…"
-                className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
+                className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-500/30"
               />
 
               <button
                 onClick={saveUpdate}
                 disabled={saving}
-                className="mt-4 w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 disabled:opacity-60"
+                className="btn-primary mt-4 w-full py-2.5 text-sm disabled:opacity-60"
               >
                 {saving ? "Saving…" : "Save Update"}
               </button>
@@ -517,13 +518,13 @@ export default function IssueDetailPage() {
 
             {/* CM Action — IB issues only */}
             {access && ibKamIds.includes(issue.kam_id) && canUseCmAction(access.role, access.teamName) && (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="glass rounded-2xl p-6">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
                     CM Action
                   </h2>
                   {issue.cm_action && (
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${CM_ACTION_STYLE[issue.cm_action] ?? "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20"}`}>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${CM_ACTION_STYLE[issue.cm_action] ?? "bg-surface-muted text-muted ring-token"}`}>
                       {issue.cm_action}
                     </span>
                   )}
@@ -541,9 +542,9 @@ export default function IssueDetailPage() {
                         s.level === "breach" ? "bg-red-500/10 text-red-600 dark:text-red-400 ring-red-200" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-200"
                       }`}
                     >
-                      ⚠ {s.label}
+                      <Icon name="alert" className="h-4 w-4 shrink-0" /> {s.label}
                       {s.deadline && (
-                        <span className="ml-auto font-normal text-slate-400 dark:text-slate-500">
+                        <span className="ml-auto font-normal text-muted">
                           Deadline {formatDateTime(s.deadline.toISOString())}
                         </span>
                       )}
@@ -553,18 +554,18 @@ export default function IssueDetailPage() {
 
                 {/* Blocked notice */}
                 {issue.cm_blocked && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
-                    🔒 BLOCKED — Justification limit reached ({issue.cm_justification_count}/{CM_JUSTIFICATION_MAX}). Only Lead can work with this issue.
+                  <div className="mb-4 rounded-lg border border-red-500/30 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/15 px-4 py-3 text-xs font-semibold text-red-700 dark:text-red-300">
+                    <Icon name="lock" className="h-4 w-4 shrink-0" /> BLOCKED — Justification limit reached ({issue.cm_justification_count}/{CM_JUSTIFICATION_MAX}). Only Lead can work with this issue.
                   </div>
                 )}
 
                 {/* Current justification */}
                 {issue.cm_justification && (
-                  <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3">
+                  <div className="mb-4 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-600">
                       Justification ({issue.cm_justification_count}/{CM_JUSTIFICATION_MAX})
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{issue.cm_justification}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-secondary">{issue.cm_justification}</p>
                   </div>
                 )}
 
@@ -580,7 +581,7 @@ export default function IssueDetailPage() {
                         disabled={saving}
                         className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
                       >
-                        📦 Pick Up
+                        <Icon name="package" className="h-4 w-4" /> Pick Up
                       </button>
                     )}
                     {issue.cm_action === "Pickup" && (
@@ -613,9 +614,9 @@ export default function IssueDetailPage() {
                     {!issue.cm_action && cmPickupSlaBreached && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
                       <button
                         onClick={() => setCmJustification(cmJustification)}
-                        className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                        className="rounded-lg border border-amber-500/40 dark:border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/15 px-4 py-2 text-sm font-semibold text-amber-700 dark:text-amber-300 transition hover:bg-amber-500/15 dark:bg-amber-500/20"
                       >
-                        📝 Give Justification
+                        <Icon name="edit" className="h-4 w-4" /> Give Justification
                       </button>
                     )}
                   </div>
@@ -625,7 +626,7 @@ export default function IssueDetailPage() {
                 {/* Justification textarea */}
                 {cmJustification && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
                   <div className="mt-4">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
                       Justification for not picking up
                     </label>
                     <textarea
@@ -633,7 +634,7 @@ export default function IssueDetailPage() {
                       onChange={(e) => setCmJustification(e.target.value)}
                       rows={3}
                       placeholder="Explain why pickup is not possible…"
-                      className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                      className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
                     />
                     <div className="mt-2 flex items-center gap-2">
                       <button
@@ -645,11 +646,11 @@ export default function IssueDetailPage() {
                       </button>
                       <button
                         onClick={() => setCmJustification("")}
-                        className="rounded-lg glass-input px-3 py-2 text-sm font-medium text-slate-400 dark:text-slate-500 transition hover:bg-slate-50"
+                        className="rounded-lg glass-input px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-muted"
                       >
                         Cancel
                       </button>
-                      <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                      <span className="ml-auto text-[11px] text-muted">
                         {(issue.cm_justification_count ?? 0)}/{CM_JUSTIFICATION_MAX} used
                       </span>
                     </div>
@@ -658,7 +659,7 @@ export default function IssueDetailPage() {
 
                 {/* Pickup SLA info */}
                 {!issue.cm_action && !issue.cm_blocked && (
-                  <div className="mt-4 rounded-lg bg-slate-50 px-4 py-2.5 text-[11px] text-slate-400 dark:text-slate-500">
+                  <div className="mt-4 rounded-lg bg-surface-muted px-4 py-2.5 text-[11px] text-muted">
                     Pickup SLA: 20 minutes from escalation · If no pickup, give a justification (max {CM_JUSTIFICATION_MAX} times, then blocked for members).
                   </div>
                 )}
@@ -667,13 +668,13 @@ export default function IssueDetailPage() {
 
             {/* KAM Action — all issues */}
             {access && canUseKamAction(access.role, access.teamName) && (
-              <section className="rounded-2xl border border-violet-200 bg-white p-6 shadow-sm">
+              <section className="rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-surface-strong p-6 shadow-sm">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">
                     KAM Action
                   </h2>
                   {issue.kam_followup_at && (
-                    <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                    <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200 ring-1 ring-inset ring-emerald-200">
                       Follow-up done
                     </span>
                   )}
@@ -684,23 +685,23 @@ export default function IssueDetailPage() {
                   const s = getKamActionSlaState(issue);
                   if (s.level === "ok" && !issue.kam_followup_at) {
                     return (
-                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-700">
-                        ✓ SLA on track — follow-up due within 2 hours of escalation
+                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 px-4 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                        <Icon name="check" className="h-4 w-4 shrink-0" /> SLA on track — follow-up due within 2 hours of escalation
                       </div>
                     );
                   }
                   if (issue.kam_followup_at) {
                     return (
-                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2 text-xs font-medium text-emerald-700">
-                        ✓ Follow-up completed
+                      <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 px-4 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                        <Icon name="check" className="h-4 w-4 shrink-0" /> Follow-up completed
                       </div>
                     );
                   }
                   return (
-                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-50 px-4 py-2 text-xs font-bold ring-1 ring-inset ring-amber-200 text-amber-700">
-                      ⚠ SLA BREACH — KAM follow-up overdue
+                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 px-4 py-2 text-xs font-bold ring-1 ring-inset ring-amber-200 text-amber-700 dark:text-amber-300">
+                      <Icon name="alert" className="h-4 w-4 shrink-0" /> SLA BREACH — KAM follow-up overdue
                       {s.deadline && (
-                        <span className="ml-auto font-normal text-slate-400 dark:text-slate-500">
+                        <span className="ml-auto font-normal text-muted">
                           Deadline {formatDateTime(s.deadline.toISOString())}
                         </span>
                       )}
@@ -710,25 +711,25 @@ export default function IssueDetailPage() {
 
                 {/* Blocked notice */}
                 {issue.kam_blocked && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
-                    🔒 BLOCKED — Justification limit reached ({issue.kam_justification_count}/{KAM_JUSTIFICATION_MAX}). Only Lead/Super Admin can work with this issue. Lead has been alerted.
+                  <div className="mb-4 rounded-lg border border-red-500/30 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/15 px-4 py-3 text-xs font-semibold text-red-700 dark:text-red-300">
+                    <Icon name="lock" className="h-4 w-4 shrink-0" /> BLOCKED — Justification limit reached ({issue.kam_justification_count}/{KAM_JUSTIFICATION_MAX}). Only Lead/Super Admin can work with this issue. Lead has been alerted.
                   </div>
                 )}
 
                 {/* Lead alerted badge */}
                 {issue.kam_lead_alerted && (
-                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[11px] font-bold text-red-700">
-                    🚨 LEAD + SUPER ADMIN ALERT SENT
+                  <div className="mb-4 rounded-lg border border-red-500/30 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/15 px-4 py-2 text-[11px] font-bold text-red-700 dark:text-red-300">
+                    <Icon name="siren" className="h-4 w-4 shrink-0" /> LEAD + SUPER ADMIN ALERT SENT
                   </div>
                 )}
 
                 {/* Current justification */}
                 {issue.kam_justification && (
-                  <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3">
+                  <div className="mb-4 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-600">
                       Justification ({issue.kam_justification_count}/{KAM_JUSTIFICATION_MAX})
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">{issue.kam_justification}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-secondary">{issue.kam_justification}</p>
                   </div>
                 )}
 
@@ -744,15 +745,15 @@ export default function IssueDetailPage() {
                         disabled={saving}
                         className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
                       >
-                        ✓ Follow Up
+                        <Icon name="check" className="h-4 w-4" /> Follow Up
                       </button>
                     )}
                     {!issue.kam_followup_at && kamSlaBreached && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
                       <button
                         onClick={() => setKamJustification(kamJustification)}
-                        className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                        className="rounded-lg border border-amber-500/40 dark:border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/15 px-4 py-2 text-sm font-semibold text-amber-700 dark:text-amber-300 transition hover:bg-amber-500/15 dark:bg-amber-500/20"
                       >
-                        📝 Give Justification
+                        <Icon name="edit" className="h-4 w-4" /> Give Justification
                       </button>
                     )}
                   </div>
@@ -762,7 +763,7 @@ export default function IssueDetailPage() {
                 {/* Justification textarea */}
                 {kamJustification && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
                   <div className="mt-4">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
                       Justification for not following up
                     </label>
                     <textarea
@@ -770,7 +771,7 @@ export default function IssueDetailPage() {
                       onChange={(e) => setKamJustification(e.target.value)}
                       rows={3}
                       placeholder="Explain why follow-up was not done within 2 hours…"
-                      className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                      className="w-full resize-y rounded-lg glass-input px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30"
                     />
                     <div className="mt-2 flex items-center gap-2">
                       <button
@@ -782,11 +783,11 @@ export default function IssueDetailPage() {
                       </button>
                       <button
                         onClick={() => setKamJustification("")}
-                        className="rounded-lg glass-input px-3 py-2 text-sm font-medium text-slate-400 dark:text-slate-500 transition hover:bg-slate-50"
+                        className="rounded-lg glass-input px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-muted"
                       >
                         Cancel
                       </button>
-                      <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                      <span className="ml-auto text-[11px] text-muted">
                         {(issue.kam_justification_count ?? 0)}/{KAM_JUSTIFICATION_MAX} used
                       </span>
                     </div>
@@ -795,30 +796,30 @@ export default function IssueDetailPage() {
 
                 {/* SLA info */}
                 {!issue.kam_followup_at && !issue.kam_blocked && (
-                  <div className="mt-4 rounded-lg bg-slate-50 px-4 py-2.5 text-[11px] text-slate-400 dark:text-slate-500">
+                  <div className="mt-4 rounded-lg bg-surface-muted px-4 py-2.5 text-[11px] text-muted">
                     Follow-up SLA: 2 hours from escalation · If no follow-up, give a justification (max {KAM_JUSTIFICATION_MAX} times, then blocked for members and Lead + Super Admin are alerted).
                   </div>
                 )}
               </section>
             )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <div className="glass rounded-2xl p-6">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Timeline
               </div>
               <ol className="mt-3 space-y-3 text-xs">
                 <li className="flex gap-3">
                   <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand" />
                   <div>
-                    <div className="font-semibold text-slate-600 dark:text-slate-300">Issue escalated</div>
-                    <div className="text-slate-400 dark:text-slate-500 dark:text-slate-400">{formatDateTime(issue.created_at)}</div>
+                    <div className="font-semibold text-secondary">Issue escalated</div>
+                    <div className="text-muted">{formatDateTime(issue.created_at)}</div>
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-300" />
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-track" />
                   <div>
-                    <div className="font-semibold text-slate-600 dark:text-slate-300">Last updated</div>
-                    <div className="text-slate-400 dark:text-slate-500 dark:text-slate-400">{formatDateTime(issue.updated_at)}</div>
+                    <div className="font-semibold text-secondary">Last updated</div>
+                    <div className="text-muted">{formatDateTime(issue.updated_at)}</div>
                   </div>
                 </li>
               </ol>
@@ -841,10 +842,10 @@ function Detail({
 }) {
   return (
     <div>
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 dark:text-slate-400">
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted">
         {label}
       </div>
-      <div className={`mt-0.5 text-sm font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300 ${mono ? "font-mono" : ""}`}>
+      <div className={`mt-0.5 text-sm font-medium text-secondary ${mono ? "font-mono" : ""}`}>
         {value}
       </div>
     </div>

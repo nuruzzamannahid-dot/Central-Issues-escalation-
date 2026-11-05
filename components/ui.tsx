@@ -3,9 +3,9 @@ import { STATUS_STYLE, PRIORITY_STYLE } from "@/lib/supabase";
 export function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLE[status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLE[status] ?? "bg-surface-muted text-secondary ring-token"}`}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
       {status}
     </span>
   );
@@ -14,7 +14,7 @@ export function StatusBadge({ status }: { status: string }) {
 export function PriorityBadge({ priority }: { priority: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ring-1 ring-inset ${PRIORITY_STYLE[priority] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ring-1 ring-inset ${PRIORITY_STYLE[priority] ?? "bg-surface-muted text-secondary ring-token"}`}
     >
       {priority}
     </span>
@@ -46,16 +46,16 @@ export function BarRow({
   const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="w-56 shrink-0 truncate text-right text-xs font-medium text-slate-600" title={label}>
+      <div className="w-56 shrink-0 truncate text-right text-xs font-medium text-secondary" title={label}>
         {label}
       </div>
-      <div className="h-6 flex-1 overflow-hidden rounded bg-slate-100">
+      <div className="h-6 flex-1 overflow-hidden rounded-lg bg-track">
         <div
-          className={`h-full rounded ${color} transition-all`}
+          className={`h-full rounded-lg ${color} transition-all`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="w-8 shrink-0 text-xs font-bold text-slate-800">{value}</div>
+      <div className="w-8 shrink-0 text-xs font-bold text-primary">{value}</div>
     </div>
   );
 }

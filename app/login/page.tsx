@@ -10,6 +10,7 @@ import {
   type TeamMember,
 } from "@/lib/supabase";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Icon } from "@/components/icons";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -72,7 +73,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 dark:bg-slate-900">
+    <div className="dashboard-bg relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
       {/* Background accents */}
       <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-brand-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-brand-100/60 blur-3xl" />
@@ -83,21 +84,21 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-md animate-fade-up">
         <div className="mb-6 flex flex-col items-center">
-          <img src="/logo.jpg" alt="Logo" className="h-16 max-w-[300px] object-contain shadow-lg" />
-          <h1 className="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <img src="/logo.jpg" alt="Logo" className="h-16 max-w-[300px] rounded-2xl bg-white object-contain p-2 shadow-glass" />
+          <h1 className="mt-4 text-2xl font-bold text-primary">
             KAM Issue Escalation Portal
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-muted">
             Escalate field issues and track them to resolution
           </p>
         </div>
 
         {accessOptions.length > 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 dark:border-slate-700 dark:bg-slate-800">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+          <div className="glass-strong rounded-3xl p-6 sm:p-7">
+            <h2 className="text-lg font-bold text-primary">
               Choose your access
             </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-sm text-muted">
               {email} has multiple access levels. Select how you&apos;d like to sign in.
             </p>
             <div className="mt-4 space-y-3">
@@ -109,17 +110,17 @@ export default function LoginPage() {
                     sessionStorage.setItem("kam_access_role", opt.role);
                     router.replace("/dashboard");
                   }}
-                  className="group w-full rounded-lg border border-slate-200 bg-white p-4 text-left transition hover:border-brand hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                  className="group w-full rounded-2xl border border-token bg-surface p-4 text-left transition hover:border-brand-500/50 hover:bg-hover"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    <span className="font-semibold text-primary">
                       {accessLabel(opt.role, opt.team_name)}
                     </span>
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <span className="text-xs font-medium text-muted">
                       {describeAccess(opt.role, opt.team_name)}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  <div className="mt-1 text-xs text-muted">
                     {opt.team_name} team · EPID {opt.epid || "—"}
                   </div>
                 </button>
@@ -128,44 +129,46 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setAccessOptions([])}
-              className="mt-4 text-xs font-medium text-slate-500 underline-offset-2 hover:underline dark:text-slate-400"
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted underline-offset-2 hover:underline"
             >
-              ← Back to sign in
+              <Icon name="arrow-left" className="h-3.5 w-3.5" /> Back to sign in
             </button>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 dark:border-slate-700 dark:bg-slate-800">
+          <div className="glass-strong rounded-3xl p-6 sm:p-7">
             <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <label htmlFor="email" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Email
               </label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 autoComplete="email"
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                className="glass-input w-full px-3.5 py-2.5 text-sm"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <label htmlFor="password" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Password
               </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                className="glass-input w-full px-3.5 py-2.5 text-sm"
               />
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700 dark:bg-red-900 dark:text-red-200">
+              <div className="rounded-lg bg-red-500/10 dark:bg-red-500/15 px-3.5 py-2.5 text-sm font-medium text-red-700 dark:text-red-300 ">
                 {error}
               </div>
             )}
@@ -173,20 +176,20 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-brand-200 transition hover:bg-brand-600 disabled:opacity-60"
+              className="btn-primary w-full py-2.5 text-sm disabled:opacity-60"
             >
               {loading ? "Please wait…" : "Sign In"}
             </button>
             </form>
 
-            <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-              <span className="font-semibold text-slate-600 dark:text-slate-300">Access is managed by your team administrator.</span>{" "}
+            <div className="mt-5 rounded-xl border border-token-light bg-surface-muted px-3.5 py-3 text-xs text-muted">
+              <span className="font-semibold text-secondary">Access is managed by your team administrator.</span>{" "}
               If you don&apos;t have an account, contact your Team Lead or Super Admin.
             </div>
           </div>
         )}
 
-        <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-600">
+        <p className="mt-6 text-center text-xs text-faint">
           KAM Issue Escalation Portal · Built with Supabase &amp; Vercel
         </p>
       </div>

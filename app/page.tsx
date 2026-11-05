@@ -24,7 +24,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="text-sm font-medium text-slate-500">
+      <div className="text-sm font-medium text-muted">
         Loading KAM portal…
       </div>
     </div>

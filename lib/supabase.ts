@@ -53,9 +53,9 @@ export const OPS_STATUSES = ["Open", "In Progress", "Solved"] as const;
 export type OpsStatus = "Open" | "In Progress" | "Solved";
 
 export const OPS_STATUS_STYLE: Record<string, string> = {
-  Open: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
-  "In Progress": "bg-blue-500/15 text-blue-400 ring-blue-500/20",
-  Solved: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
+  Open: "bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/30",
+  "In Progress": "bg-blue-500/15 text-blue-700 dark:text-blue-300 ring-blue-500/30",
+  Solved: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/30",
 };
 
 export type RefData = {
@@ -75,12 +75,12 @@ export const STATUSES = [
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 
 export const STATUS_STYLE: Record<string, string> = {
-  Open: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
-  "In Progress": "bg-blue-500/15 text-blue-400 ring-blue-500/20",
-  Resolved: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
-  "Not Remarks": "bg-sky-500/15 text-sky-400 ring-sky-500/20",
-  Improper: "bg-red-500/15 text-red-400 ring-red-500/20",
-  "Pending Review": "bg-violet-500/15 text-violet-400 ring-violet-500/20",
+  Open: "bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/30",
+  "In Progress": "bg-blue-500/15 text-blue-700 dark:text-blue-300 ring-blue-500/30",
+  Resolved: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/30",
+  "Not Remarks": "bg-sky-500/15 text-sky-700 dark:text-sky-300 ring-sky-500/30",
+  Improper: "bg-red-500/15 text-red-700 dark:text-red-300 ring-red-500/30",
+  "Pending Review": "bg-violet-500/15 text-violet-700 dark:text-violet-300 ring-violet-500/30",
 };
 
 /* ----------------------------------------------------------------------- *
@@ -137,8 +137,8 @@ export function getSlaState(
 }
 
 export const SLA_STYLE: Record<string, string> = {
-  breach: "bg-amber-500/15 text-amber-400 ring-amber-500/20",
-  critical: "bg-red-500/15 text-red-400 ring-red-500/20",
+  breach: "bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/30",
+  critical: "bg-red-500/15 text-red-700 dark:text-red-300 ring-red-500/30",
 };
 
 /* ----------------------------------------------------------------------- *
@@ -214,10 +214,10 @@ export function getCmActionSlaState(
 }
 
 export const CM_ACTION_STYLE: Record<string, string> = {
-  "Pickup": "bg-violet-500/15 text-violet-400 ring-violet-500/20",
-  "1st Followup": "bg-blue-500/15 text-blue-400 ring-blue-500/20",
-  "2nd Followup": "bg-sky-500/15 text-sky-400 ring-sky-500/20",
-  "3rd Followup": "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20",
+  "Pickup": "bg-violet-500/15 text-violet-700 dark:text-violet-300 ring-violet-500/30",
+  "1st Followup": "bg-blue-500/15 text-blue-700 dark:text-blue-300 ring-blue-500/30",
+  "2nd Followup": "bg-sky-500/15 text-sky-700 dark:text-sky-300 ring-sky-500/30",
+  "3rd Followup": "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/30",
 };
 
 export const CM_JUSTIFICATION_MAX = 2;
@@ -270,7 +270,7 @@ export function getKamActionSlaState(
 }
 
 export const KAM_ACTION_STYLE: Record<string, string> = {
-  "Followup": "bg-violet-100 text-violet-800 ring-violet-200",
+  "Followup": "bg-violet-500/15 text-violet-700 dark:text-violet-300 ring-violet-500/30",
 };
 
 /** Returns true if the user can use the KAM Action section.
@@ -295,10 +295,10 @@ export function canPerformKamAction(
 }
 
 export const PRIORITY_STYLE: Record<string, string> = {
-  Low: "bg-slate-500/15 text-slate-400 ring-slate-500/20",
-  Medium: "bg-sky-500/15 text-sky-400 ring-sky-500/20",
-  High: "bg-orange-500/15 text-orange-400 ring-orange-500/20",
-  Critical: "bg-red-500/15 text-red-400 ring-red-500/20",
+  Low: "bg-surface-muted text-secondary ring-token",
+  Medium: "bg-sky-500/15 text-sky-700 dark:text-sky-300 ring-sky-500/30",
+  High: "bg-orange-500/15 text-orange-700 dark:text-orange-300 ring-orange-500/30",
+  Critical: "bg-red-500/15 text-red-700 dark:text-red-300 ring-red-500/30",
 };
 
 export function formatDate(iso: string | null): string {

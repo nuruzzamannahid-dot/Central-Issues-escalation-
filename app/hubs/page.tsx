@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Nav from "@/components/Nav";
+import { Icon } from "@/components/icons";
 import {
   formatDateTime,
   supabase,
@@ -249,7 +250,7 @@ export default function HubsPage() {
     return (
       <div className="min-h-screen dashboard-bg">
         <div className="flex h-screen items-center justify-center">
-          <div className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Loading Hub Performance…</div>
+          <div className="text-muted">Loading Hub Performance…</div>
         </div>
       </div>
     );
@@ -260,8 +261,8 @@ export default function HubsPage() {
       <div className="min-h-screen dashboard-bg">
         <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-7xl px-4 py-12">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-950/40">
-            <p className="text-red-700 dark:text-red-600 dark:text-red-400">{error}</p>
+          <div className="rounded-xl border border-red-500/30 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/15 p-6 dark:border-red-800 dark:bg-red-950/40">
+            <p className="text-red-700 dark:text-red-300 dark:text-red-300">{error}</p>
           </div>
         </div>
       </div>
@@ -285,16 +286,16 @@ export default function HubsPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Hub Performance</h1>
-              <p className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">
+              <h1 className="text-2xl font-bold text-primary">Hub Performance</h1>
+              <p className="text-sm text-muted">
                 Hub-level issue metrics, SLA compliance, and performance scorecard
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-white">
+              <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-[#111827] shadow-glass">
                 {totalHubs} hubs
               </span>
-              <span className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 dark:bg-slate-700 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">
+              <span className="rounded-lg bg-surface-muted px-3 py-1.5 text-xs font-bold text-secondary">
                 {totalIssues} issues
               </span>
             </div>
@@ -303,21 +304,21 @@ export default function HubsPage() {
 
         {/* Filter Bar */}
         <div className="mb-6 flex flex-wrap items-center gap-3 glass rounded-2xl p-3">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">ZONE</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-muted">ZONE</span>
           <select
             value={zoneFilter}
             onChange={(e) => setZoneFilter(e.target.value)}
-            className="rounded-lg glass-input glass-input px-3 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand  text-slate-200"
+            className="rounded-lg glass-input px-3 py-1.5 text-sm text-primary focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             {zones.map((z) => (
               <option key={z} value={z}>{z === "All" ? "All" : z}</option>
             ))}
           </select>
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">HUB</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-muted">HUB</span>
           <select
             value={hubFilter}
             onChange={(e) => setHubFilter(e.target.value)}
-            className="rounded-lg glass-input glass-input px-3 py-1.5 text-sm text-slate-200 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand  text-slate-200"
+            className="rounded-lg glass-input px-3 py-1.5 text-sm text-primary focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             {hubs.map((h) => (
               <option key={h} value={h}>{h === "All" ? "All" : h}</option>
@@ -328,33 +329,33 @@ export default function HubsPage() {
         {/* KPI Cards */}
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Hubs</div>
-            <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{totalHubs}</div>
-            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">with issues in filter range</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Total Hubs</div>
+            <div className="mt-1 text-3xl font-bold text-primary">{totalHubs}</div>
+            <div className="mt-1 text-xs text-muted">with issues in filter range</div>
           </div>
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Issues</div>
-            <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{totalIssues}</div>
-            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">in filtered range</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Total Issues</div>
+            <div className="mt-1 text-3xl font-bold text-primary">{totalIssues}</div>
+            <div className="mt-1 text-xs text-muted">in filtered range</div>
           </div>
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">SLA Breaches</div>
-            <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-600 dark:text-red-400">{totalBreached}</div>
-            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">hub SLA breaches</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">SLA Breaches</div>
+            <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-300">{totalBreached}</div>
+            <div className="mt-1 text-xs text-muted">hub SLA breaches</div>
           </div>
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Unjustified</div>
-            <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-600 dark:text-orange-400">{totalUnjustified}</div>
-            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">breaches without justification</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Unjustified</div>
+            <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-300">{totalUnjustified}</div>
+            <div className="mt-1 text-xs text-muted">breaches without justification</div>
           </div>
         </div>
 
         {/* Needs Attention */}
         {needsAttention.length > 0 && (
-          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
-            <div className="flex items-center gap-2 border-b border-amber-200 px-5 py-3 dark:border-amber-800">
-              <span className="text-lg">⚠️</span>
-              <h2 className="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-600 dark:text-amber-400">
+          <div className="mb-6 rounded-xl border border-amber-500/30 dark:border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 dark:border-amber-800 dark:bg-amber-950/30">
+            <div className="flex items-center gap-2 border-b border-amber-500/30 dark:border-amber-500/30 px-5 py-3 dark:border-amber-800">
+              <Icon name="alert" className="h-5 w-5 text-amber-600 dark:text-amber-300" />
+              <h2 className="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 dark:text-amber-300">
                 Needs Attention
               </h2>
             </div>
@@ -362,7 +363,7 @@ export default function HubsPage() {
               {needsAttention.slice(0, 12).map((r) => (
                 <span
                   key={r.hub}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-800"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 dark:bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-800"
                 >
                   {r.hub}
                   {r.slaBreached > 0 && <span className="text-red-500">{r.slaBreached} breach</span>}
@@ -378,42 +379,42 @@ export default function HubsPage() {
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Top 10 Hubs by Volume */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Top 10 Hubs by Volume</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Top 10 Hubs by Volume</h2>
             <div className="space-y-2">
               {topHubsByVolume.map((r) => (
                 <div key={r.hub} className="flex items-center gap-2">
-                  <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300" title={r.hub}>
+                  <div className="w-36 shrink-0 truncate text-xs font-medium text-secondary" title={r.hub}>
                     {r.hub}
                   </div>
                   <div className="flex-1">
-                    <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
+                    <div className="h-5 overflow-hidden rounded bg-track">
                       <div
                         className="flex h-full items-center justify-end rounded bg-brand px-2 transition-all"
                         style={{ width: `${Math.max(2, (r.issues / maxVolume) * 100)}%` }}
                       >
-                        <span className="text-[10px] font-bold text-white">{r.issues}</span>
+                        <span className="text-[10px] font-bold text-[#111827]">{r.issues}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
               {topHubsByVolume.length === 0 && (
-                <div className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">No data</div>
+                <div className="text-sm text-muted">No data</div>
               )}
             </div>
           </div>
 
           {/* Hubs with Most SLA Breaches */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Hubs with Most SLA Breaches</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Hubs with Most SLA Breaches</h2>
             <div className="space-y-2">
               {topBreachedHubs.map((r) => (
                 <div key={r.hub} className="flex items-center gap-2">
-                  <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300" title={r.hub}>
+                  <div className="w-36 shrink-0 truncate text-xs font-medium text-secondary" title={r.hub}>
                     {r.hub}
                   </div>
                   <div className="flex-1">
-                    <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
+                    <div className="h-5 overflow-hidden rounded bg-track">
                       <div
                         className="flex h-full items-center justify-end rounded bg-red-500 px-2 transition-all"
                         style={{ width: `${Math.max(2, (r.slaBreached / maxBreach) * 100)}%` }}
@@ -425,18 +426,18 @@ export default function HubsPage() {
                 </div>
               ))}
               {topBreachedHubs.length === 0 && (
-                <div className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">No breaches 🎉</div>
+                <div className="text-sm text-muted">No breaches</div>
               )}
             </div>
           </div>
 
           {/* Hub SLA Split Donut */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Hub SLA Split</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Hub SLA Split</h2>
             <div className="flex flex-col items-center gap-4">
               <svg viewBox="0 0 120 120" className="h-40 w-40">
                 {/* Background circle */}
-                <circle cx="60" cy="60" r="45" fill="none" stroke="#e2e8f0" strokeWidth="14" />
+                <circle cx="60" cy="60" r="45" fill="none" className="stroke-track" strokeWidth="14" />
                 {/* Met */}
                 {slaSplit.met > 0 && (
                   <circle
@@ -458,25 +459,25 @@ export default function HubsPage() {
                   />
                 )}
                 {/* Center text */}
-                <text x="60" y="55" textAnchor="middle" className="fill-slate-900 dark:fill-slate-100" fontSize="20" fontWeight="bold">
+                <text x="60" y="55" textAnchor="middle" className="fill-primary" fontSize="20" fontWeight="bold">
                   {slaSplit.total}
                 </text>
-                <text x="60" y="72" textAnchor="middle" className="fill-slate-400" fontSize="9">
+                <text x="60" y="72" textAnchor="middle" className="fill-muted" fontSize="9">
                   total
                 </text>
               </svg>
               <div className="flex flex-col gap-1 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                  <span className="text-slate-400 dark:text-slate-600 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">Met: <b>{slaSplit.met}</b> ({pct(slaSplit.met, slaSplit.total)}%)</span>
+                  <span className="text-faint">Met: <b>{slaSplit.met}</b> ({pct(slaSplit.met, slaSplit.total)}%)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                  <span className="text-slate-400 dark:text-slate-600 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">Breached: <b>{slaSplit.breached}</b> ({pct(slaSplit.breached, slaSplit.total)}%)</span>
+                  <span className="text-faint">Breached: <b>{slaSplit.breached}</b> ({pct(slaSplit.breached, slaSplit.total)}%)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                  <span className="text-slate-400 dark:text-slate-600 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">Pending: <b>{slaSplit.pending}</b> ({pct(slaSplit.pending, slaSplit.total)}%)</span>
+                  <span className="h-2.5 w-2.5 rounded-full bg-track"></span>
+                  <span className="text-faint">Pending: <b>{slaSplit.pending}</b> ({pct(slaSplit.pending, slaSplit.total)}%)</span>
                 </div>
               </div>
             </div>
@@ -485,54 +486,54 @@ export default function HubsPage() {
 
         {/* Hub Scorecard Table */}
         <div className="glass rounded-2xl">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-700">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          <div className="flex items-center justify-between border-b border-token px-5 py-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
               Hub Scorecard · {hubRows.length} hubs
             </h2>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-muted">
                 Updated {formatDateTime(new Date().toISOString())}
               </span>
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm glass-table">
               <thead>
-                <tr className="border-b border-black/5 dark:border-white/5">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">HUB</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">ISSUES</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">HUB SLA%</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">AVG REPLY</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">COMMENT%</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">RESOLVED%</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM SCORE</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM FAILED</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">CM BREACH</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">UNJUSTIFIED</th>
+                <tr className="border-b border-token-light">
+                  <th className="px-4 py-3 text-left font-semibold text-muted">HUB</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">ISSUES</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">HUB SLA%</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">AVG REPLY</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">COMMENT%</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">RESOLVED%</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">KAM SCORE</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">KAM FAILED</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">CM BREACH</th>
+                  <th className="px-3 py-3 text-right font-semibold text-muted">UNJUSTIFIED</th>
                 </tr>
               </thead>
               <tbody>
                 {hubRows.map((r) => (
-                  <tr key={r.hub} className="border-b border-black/5 dark:border-white/5 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
-                    <td className="px-4 py-2.5 font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.hub}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{r.issues}</td>
+                  <tr key={r.hub} className="border-b border-token-light transition hover:bg-surface-muted ">
+                    <td className="px-4 py-2.5 font-medium text-secondary">{r.hub}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-primary">{r.issues}</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
                         r.hubSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
-                        : r.hubSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-600 dark:text-yellow-400 dark:ring-yellow-800"
+                        : r.hubSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-500/15 dark:ring-yellow-500/30"
                         : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                       }`}>
                         {r.hubSlaPct}%
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                    <td className="px-3 py-2.5 text-right text-muted">
                       {r.avgReply !== null ? `${r.avgReply.toFixed(1)}h` : "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.commentPct}%</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-secondary">{r.commentPct}%</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
                         r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
-                        : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-600 dark:text-yellow-400 dark:ring-yellow-800"
+                        : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-500/15 dark:ring-yellow-500/30"
                         : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                       }`}>
                         {r.resolvedPct}%
@@ -541,7 +542,7 @@ export default function HubsPage() {
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
                         r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
-                        : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-600 dark:text-yellow-400 dark:ring-yellow-800"
+                        : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-500/15 dark:ring-yellow-500/30"
                         : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                       }`}>
                         {r.kamScore}
@@ -549,23 +550,23 @@ export default function HubsPage() {
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       {r.kamFailed > 0 ? (
-                        <span className="font-bold text-purple-600 dark:text-purple-600 dark:text-purple-400">{r.kamFailed}</span>
+                        <span className="font-bold text-purple-600 dark:text-purple-300">{r.kamFailed}</span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">0</span>
+                        <span className="text-muted">0</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       {r.cmBreach > 0 ? (
-                        <span className="font-bold text-orange-600 dark:text-orange-600 dark:text-orange-400">{r.cmBreach}</span>
+                        <span className="font-bold text-orange-600 dark:text-orange-300">{r.cmBreach}</span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">0</span>
+                        <span className="text-muted">0</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       {r.unjustified > 0 ? (
-                        <span className="font-bold text-red-600 dark:text-red-600 dark:text-red-400">{r.unjustified}</span>
+                        <span className="font-bold text-red-600 dark:text-red-300">{r.unjustified}</span>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">0</span>
+                        <span className="text-muted">0</span>
                       )}
                     </td>
                   </tr>
@@ -576,7 +577,7 @@ export default function HubsPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+        <div className="mt-4 flex items-center justify-between text-xs text-muted">
           <span>CarryBee · Internal use</span>
           <span>{filteredIssues.length} issues from {hubRows.length} hubs</span>
         </div>

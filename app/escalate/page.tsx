@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Nav from "@/components/Nav";
+import { Icon } from "@/components/icons";
 import { makeReferenceNo, supabase, PRIORITIES, getUserAccess, type RefData } from "@/lib/supabase";
 
 export default function EscalatePage() {
@@ -212,7 +213,7 @@ export default function EscalatePage() {
   }
 
   if (!user) {
-    return <div className="flex min-h-screen items-center justify-center text-slate-400 dark:text-slate-500">Loading…</div>;
+    return <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>;
   }
 
   if (denied) {
@@ -220,11 +221,11 @@ export default function EscalatePage() {
       <>
         <Nav email={user.email} name={user.email.split("@")[0]} />
         <div className="mx-auto max-w-2xl px-4 py-10">
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-700">
+          <div className="rounded-2xl border border-red-500/30 dark:border-red-500/30 bg-red-500/10 dark:bg-red-500/15 p-6 text-sm font-medium text-red-700 dark:text-red-300">
             Access denied — your email is not in the team member list. Contact your administrator.
           </div>
-          <Link href="/dashboard" className="mt-4 inline-block text-sm font-medium text-brand hover:underline">
-            ← Back to dashboard
+          <Link href="/dashboard" className="mt-4 inline-block text-sm font-medium text-link hover:underline">
+            <Icon name="arrow-left" className="h-4 w-4" /> Back to dashboard
           </Link>
         </div>
       </>
@@ -238,31 +239,29 @@ export default function EscalatePage() {
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <div className="mb-6">
           <div className="mb-2">
-            <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-1.02 0L6.45 9.97a.75.75 0 000 1.02l5.32 5.74a.75.75 0 11-1.02 1.02l-5.74-5.32a.75.75 0 00-1.02 0l-5.32 5.74a.75.75 0 11-1.02-1.02l5.74-5.32a.75.75 0 010-1.02z" clipRule="evenodd" />
-              </svg>
+            <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium text-link hover:underline">
+              <Icon name="arrow-left" className="h-4 w-4" />
               Back to dashboard
             </Link>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Escalate a New Issue</h1>
-          <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+          <h1 className="text-2xl font-bold text-primary">Escalate a New Issue</h1>
+          <p className="mt-1 text-sm text-muted">
             Capture parcel details, location and issue classification.
           </p>
         </div>
 
         <form onSubmit={submit} className="space-y-6">
           {/* Reference */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Reference</h2>
+          <section className="glass rounded-2xl p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Reference</h2>
             <Field label="Parcel / Order ID">
               <input value={parcelId} onChange={(e) => setParcelId(e.target.value)} placeholder="e.g. PAR-8842211" className="input" />
             </Field>
           </section>
 
           {/* Location */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Zone & Hub</h2>
+          <section className="glass rounded-2xl p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Zone & Hub</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Zone *">
                 <select value={zone} onChange={(e) => { setZone(e.target.value); setHub(""); }} className="input">
@@ -271,7 +270,7 @@ export default function EscalatePage() {
                 </select>
               </Field>
               <Field label="Hub *">
-                <select value={hub} onChange={(e) => setHub(e.target.value)} disabled={!zone} className="input disabled:bg-slate-50 disabled:text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                <select value={hub} onChange={(e) => setHub(e.target.value)} disabled={!zone} className="input disabled:bg-surface-muted disabled:text-muted">
                   <option value="">Select hub…</option>
                   {zoneHubs.map((h) => <option key={h.name} value={h.name}>{h.name}</option>)}
                 </select>
@@ -280,8 +279,8 @@ export default function EscalatePage() {
           </section>
 
           {/* Classification */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issue Classification</h2>
+          <section className="glass rounded-2xl p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Issue Classification</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Searchable Category Dropdown */}
               <div ref={catRef}>
@@ -319,13 +318,13 @@ export default function EscalatePage() {
 
             {/* Auto-set priority display */}
             {selectedSubData && (
-              <div className="mt-4 flex items-center gap-3 rounded-lg bg-blue-50 px-4 py-3">
+              <div className="alert alert-info mt-4 flex items-center gap-3 px-4 py-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">Auto-set Priority</span>
                 <PriorityPill priority={selectedSubData.priority} />
                 <button
                   type="button"
                   onClick={() => setPriority("Medium")}
-                  className="ml-auto text-[11px] font-medium text-slate-400 dark:text-slate-500 dark:text-slate-400 hover:text-slate-400 dark:text-slate-600"
+                  className="ml-auto text-[11px] font-medium text-muted hover:text-primary"
                 >
                   Change
                 </button>
@@ -342,8 +341,8 @@ export default function EscalatePage() {
                       onClick={() => setPriority(p)}
                       className={`rounded-full px-4 py-2 text-sm font-semibold ring-1 ring-inset transition ${
                         priority === p
-                          ? "ring-2 ring-brand ring-brand-100"
-                          : "ring-slate-200 hover:bg-slate-50"
+                          ? "ring-2 ring-brand-500 bg-brand-500/10"
+                          : "ring-token hover:bg-hover"
                       }`}
                     >
                       <PriorityPill priority={p} />
@@ -355,27 +354,27 @@ export default function EscalatePage() {
           </section>
 
           {/* Details */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issue Details</h2>
+          <section className="glass rounded-2xl p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Issue Details</h2>
             <Field label="Description *" hint="Include what happened, when, and any evidence references.">
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="Describe the issue in detail…" className="input resize-y" />
             </Field>
           </section>
 
           {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>
+            <div role="alert" className="alert alert-danger px-4 py-3 text-sm font-medium">{error}</div>
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-muted">
               Reference will be auto-generated: <PriorityPill priority={priority} />{" "}
-              <span className="font-mono text-slate-400 dark:text-slate-500">ESC-YYMMDD-####</span>
+              <span className="font-mono text-muted">ESC-YYMMDD-####</span>
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={() => router.push("/dashboard")} className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-400 dark:text-slate-600 transition hover:bg-slate-50">
+              <button type="button" onClick={() => router.push("/dashboard")} className="btn-secondary px-4 py-2.5 text-sm">
                 Cancel
               </button>
-              <button type="submit" disabled={submitting} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary px-5 py-2.5 text-sm disabled:opacity-60">
                 {submitting ? "Escalating…" : "Escalate Issue"}
               </button>
             </div>
@@ -383,36 +382,22 @@ export default function EscalatePage() {
         </form>
       </main>
 
-      <style jsx>{`
-        :global(.input) {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid #cbd5e1;
-          padding: 0.625rem 0.875rem;
-          font-size: 0.875rem;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-          background: #fff;
-        }
-        :global(.input:focus) {
-          border-color: var(--color-brand);
-          box-shadow: 0 0 0 2px rgb(191 211 254 / 60%);
-        }
-        :global(.input:disabled) {
-          background: #f1f5f9;
-          color: #94a3b8;
-        }
-      `}</style>
     </>
   );
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  const id = React.useId();
+  const child = React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement<{ id?: string }>, {
+        id: (children as React.ReactElement<{ id?: string }>).props.id ?? id,
+      })
+    : children;
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{label}</label>
-      {children}
-      {hint && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{hint}</p>}
+      <label htmlFor={id} className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">{label}</label>
+      {child}
+      {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
@@ -425,7 +410,7 @@ function PriorityPill({ priority }: { priority: string }) {
       ? "bg-orange-500/15 text-orange-600 dark:text-orange-400 ring-orange-500/20"
       : priority === "Medium"
       ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 ring-sky-500/20"
-      : "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20";
+      : "bg-surface-muted text-muted ring-token";
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style}`}>
       {priority}
@@ -434,6 +419,7 @@ function PriorityPill({ priority }: { priority: string }) {
 }
 
 function Combobox({
+  id,
   open,
   onToggle,
   search,
@@ -444,6 +430,7 @@ function Combobox({
   placeholder,
   disabled,
 }: {
+  id?: string;
   open: boolean;
   onToggle: () => void;
   search: string;
@@ -457,40 +444,45 @@ function Combobox({
   return (
     <div className="relative">
       <button
+        id={id}
         type="button"
         onClick={onToggle}
         disabled={disabled}
-        className={`input flex items-center justify-between text-left ${disabled ? "disabled:bg-slate-50 disabled:text-slate-400 dark:text-slate-500 dark:text-slate-400" : ""}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`input flex items-center justify-between text-left ${disabled ? "disabled:bg-surface-muted disabled:text-muted" : ""}`}
       >
-        <span className={value ? "font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 dark:text-slate-400"}>
+        <span className={value ? "font-medium text-secondary" : "text-muted"}>
           {value || placeholder}
         </span>
-        <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 text-slate-400 dark:text-slate-500 dark:text-slate-400 transition ${open ? "rotate-180" : ""}`}>
+        <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 text-muted transition ${open ? "rotate-180" : ""}`}>
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
         </svg>
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+        <div className="glass-strong absolute z-20 mt-1 w-full rounded-2xl p-2" role="listbox">
           <div className="mb-2">
             <input
               autoFocus
               value={search}
               onChange={(e) => onSearch(e.target.value)}
               placeholder="Search…"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
+              className="glass-input w-full px-3 py-2 text-sm"
             />
           </div>
           <div className="max-h-56 overflow-y-auto space-y-1">
             {options.length === 0 && (
-              <div className="px-3 py-2 text-center text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">No results</div>
+              <div className="px-3 py-2 text-center text-sm text-muted">No results</div>
             )}
             {options.map((opt) => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => onSelect(opt)}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${
-                  value === opt ? "bg-blue-50 font-medium text-blue-700" : "text-slate-600 dark:text-slate-300"
+                role="option"
+                aria-selected={value === opt}
+                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-surface-muted ${
+                  value === opt ? "bg-brand-500/15 font-medium text-link" : "text-secondary"
                 }`}
               >
                 {opt}
