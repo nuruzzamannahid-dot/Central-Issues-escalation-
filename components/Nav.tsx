@@ -9,9 +9,13 @@ import { Logo } from "@/components/ui";
 export default function Nav({
   email,
   name,
+  role,
+  teamName,
 }: {
   email: string;
   name: string;
+  role?: string;
+  teamName?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -43,18 +47,38 @@ export default function Nav({
           >
             Dashboard
           </Link>
-          <Link
-            href="/escalate"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-          >
-            Escalate Issue
-          </Link>
+          {role && (role === "Super Admin" || role === "Team Lead") && (
+            <Link
+              href="/escalate"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              Escalate Issue
+            </Link>
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden text-right sm:block">
-            <div className="text-sm font-semibold text-slate-900">{name}</div>
-            <div className="text-xs text-slate-500">{email}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-900">{name}</span>
+              {role && (
+                <span
+                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${
+                    role === "Super Admin"
+                      ? "bg-purple-100 text-purple-800 ring-purple-200"
+                      : role === "Team Lead"
+                      ? "bg-blue-100 text-blue-800 ring-blue-200"
+                      : "bg-slate-100 text-slate-600 ring-slate-200"
+                  }`}
+                >
+                  {role}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-slate-500">
+              {email}
+              {teamName ? ` · ${teamName}` : ""}
+            </div>
           </div>
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
             {name.charAt(0).toUpperCase() || "K"}

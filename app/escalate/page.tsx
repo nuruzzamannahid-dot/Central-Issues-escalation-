@@ -5,17 +5,19 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Nav from "@/components/Nav";
 import { PriorityBadge } from "@/components/ui";
-import { makeReferenceNo, supabase, PRIORITIES } from "@/lib/supabase";
+import { makeReferenceNo, supabase, PRIORITIES, getUserAccess } from "@/lib/supabase";
 
 export default function EscalatePage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
+  const [access, setAccess] = useState<{ role: string; teamName: string; name: string } | null>(null);
   const [zones, setZones] = useState<{ code: string; name: string }[]>([]);
   const [hubs, setHubs] = useState<{ zone_code: string; name: string }[]>([]);
   const [categories, setCategories] = useState<
     { name: string; subcategory: string }[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState(false);
 
   const [parcelId, setParcelId] = useState("");
   const [zone, setZone] = useState("");
@@ -36,7 +38,23 @@ export default function EscalatePage() {
         router.replace("/login");
         return;
       }
-      setUser({ email: session.user.email ?? "" });
+      const email = session.user.email ?? "";
+      setUser({ email });
+
+      // Check RBAC — only Super Admin and Team Lead can escalate
+      const acc = await getUserAccess(email);
+      if (!acc) {
+        setDenied(true);
+        setLoading(false);
+        return;
+      }
+      setAccess({ role: acc.role, teamName: acc.teamName, name: acc.name });
+
+      if (acc.role !== "Super Admin" && acc.role !== "Team Lead") {
+        setDenied(true);
+        setLoading(false);
+        return;
+      }
 
       const [zoneRes, hubRes, catRes] = await Promise.all([
         supabase.from("zones").select("code,name").order("code"),
@@ -85,23 +103,41 @@ export default function EscalatePage() {
 
     setSubmitting(true);
     try {
+      // Look up or create a KAM profile for the escalating user
       const { data: kamRow } = await supabase
         .from("kams")
         .select("id")
         .eq("email", user!.email)
         .maybeSingle();
 
-      if (!kamRow) {
-        setError("KAM profile not found. Please sign in again.");
-        setSubmitting(false);
-        return;
+      let kamId: string;
+      if (kamRow) {
+        kamId = kamRow.id;
+      } else {
+        // Team Lead / Super Admin without a KAM profile — create one
+        const { data: newKam, error: kamErr } = await supabase
+          .from("kams")
+          .insert({
+            full_name: access?.name ?? user!.email.split("@")[0],
+            email: user!.email,
+            phone: null,
+          })
+          .select("id")
+          .single();
+        if (kamErr || !newKam) {
+          setError("KAM profile not found and could not be created. Please contact your administrator.");
+          setSubmitting(false);
+          return;
+        }
+        kamId = newKam.id;
       }
 
       const { data, error: insertError } = await supabase
         .from("issues")
         .insert({
           reference_no: makeReferenceNo(),
-          kam_id: kamRow.id,
+          kam_id: kamId,
+          merchant_name: "Unknown",
           parcel_id: parcelId.trim() || null,
           zone,
           hub,
@@ -117,7 +153,10 @@ export default function EscalatePage() {
       if (insertError) throw insertError;
       router.replace(`/issues?id=${data.id}&created=1`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to escalate issue.";
+      const msg =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to escalate issue.";
       setError(msg);
       setSubmitting(false);
     }
@@ -131,9 +170,33 @@ export default function EscalatePage() {
     );
   }
 
+  if (denied) {
+    return (
+      <>
+        <Nav email={user.email} name={user.email.split("@")[0]} />
+        <div className="mx-auto max-w-2xl px-4 py-10">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-700">
+            Access denied — only Super Admins and Team Leads can escalate issues.
+          </div>
+          <Link
+            href="/dashboard"
+            className="mt-4 inline-block text-sm font-medium text-brand hover:underline"
+          >
+            ← Back to dashboard
+          </Link>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <Nav email={user.email} name={user.email.split("@")[0]} />
+      <Nav
+        email={user.email}
+        name={access?.name ?? user.email.split("@")[0]}
+        role={access?.role}
+        teamName={access?.teamName}
+      />
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <div className="mb-6">

@@ -157,6 +157,95 @@ export function formatDateTime(iso: string | null): string {
   });
 }
 
+/* ----------------------------------------------------------------------- *
+ *  Role-based access control (RBAC)                                        *
+ *  Teams: Corporate, Key Account Management (CM), OSD Business,          *
+ *         ISD Business, SUB Business, Activation, IB                     *
+ *  Roles: Super Admin, Team Lead, Member                                  *
+ *  Rules:                                                                 *
+ *    • Super Admin → see / edit ALL issues                               *
+ *    • Team Lead   → see their team's members' issues                    *
+ *    • CM Member   → see CM + IB members' issues                         *
+ *    • Other Member→ see their own team's issues                         *
+ * ----------------------------------------------------------------------- */
+
+export type TeamMember = {
+  id: string;
+  team_name: string;
+  member_name: string;
+  designation: string | null;
+  email: string;
+  epid: string | null;
+  role: "Super Admin" | "Team Lead" | "Member";
+  created_at: string;
+};
+
+export type UserAccess = {
+  email: string;
+  name: string;
+  role: "Super Admin" | "Team Lead" | "Member";
+  teamName: string;
+  accessibleTeams: string[]; // team names the user can see issues for
+  canEscalate: boolean; // Super Admin or Team Lead
+};
+
+/** Returns the list of team names a user can see issues for. */
+export function getAccessibleTeamNames(
+  role: string,
+  teamName: string
+): string[] {
+  if (role === "Super Admin") return ["__ALL__"];
+  if (role === "Team Lead") return [teamName];
+  // Member
+  if (teamName === "CM") return ["CM", "IB"];
+  return [teamName];
+}
+
+/** Looks up the user's team membership and returns their access profile. */
+export async function getUserAccess(
+  email: string
+): Promise<UserAccess | null> {
+  const { data, error } = await supabase
+    .from("team_members")
+    .select("*")
+    .eq("email", email)
+    .limit(1);
+
+  if (error || !data || data.length === 0) return null;
+
+  const member = data[0] as TeamMember;
+  const role = member.role as "Super Admin" | "Team Lead" | "Member";
+  const accessibleTeams = getAccessibleTeamNames(role, member.team_name);
+
+  return {
+    email: member.email,
+    name: member.member_name,
+    role,
+    teamName: member.team_name,
+    accessibleTeams,
+    canEscalate: role === "Super Admin" || role === "Team Lead",
+  };
+}
+
+/** Fetches the list of KAM ids whose emails belong to the given teams. */
+export async function getKamIdsForTeams(teamNames: string[]): Promise<string[]> {
+  if (teamNames.includes("__ALL__")) {
+    const { data } = await supabase.from("kams").select("id");
+    return (data ?? []).map((k) => k.id as string);
+  }
+  const { data } = await supabase
+    .from("team_members")
+    .select("email")
+    .in("team_name", teamNames);
+  const emails = (data ?? []).map((m) => m.email as string);
+  if (emails.length === 0) return [];
+  const { data: kamData } = await supabase
+    .from("kams")
+    .select("id")
+    .in("email", emails);
+  return (kamData ?? []).map((k) => k.id as string);
+}
+
 export function makeReferenceNo(): string {
   const d = new Date();
   const yy = String(d.getFullYear()).slice(2);

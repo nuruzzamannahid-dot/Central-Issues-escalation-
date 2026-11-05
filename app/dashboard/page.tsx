@@ -14,6 +14,8 @@ import {
   OPS_STATUS_STYLE,
   getSlaState,
   SLA_STYLE,
+  getUserAccess,
+  getKamIdsForTeams,
   type Issue,
 } from "@/lib/supabase";
 
@@ -22,6 +24,12 @@ type Kam = { id: string; full_name: string; email: string; phone: string | null 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
+  const [access, setAccess] = useState<{
+    role: string;
+    teamName: string;
+    accessibleTeams: string[];
+    canEscalate: boolean;
+  } | null>(null);
   const [kam, setKam] = useState<Kam | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,22 +65,50 @@ export default function DashboardPage() {
         router.replace("/login");
         return;
       }
-      setUser({ email: session.user.email ?? "" });
+      const email = session.user.email ?? "";
+      setUser({ email });
 
-      const [kamRes, issueRes, zoneRes, hubRes, catRes] = await Promise.all([
-        supabase.from("kams").select("id,full_name,email,phone").eq("email", session.user.email!).maybeSingle(),
-        supabase.from("issues").select("*").order("created_at", { ascending: false }).limit(500),
+      // Get RBAC access profile
+      const acc = await getUserAccess(email);
+      if (!acc) {
+        setError("Your email is not in the team member list. Contact your administrator.");
+        setLoading(false);
+        return;
+      }
+      setAccess({
+        role: acc.role,
+        teamName: acc.teamName,
+        accessibleTeams: acc.accessibleTeams,
+        canEscalate: acc.canEscalate,
+      });
+
+      // Get KAM profile (optional — team members may not have a kams row yet)
+      const kamRes = await supabase
+        .from("kams")
+        .select("id,full_name,email,phone")
+        .eq("email", email)
+        .maybeSingle();
+
+      // Fetch all issues, then filter by accessible teams
+      const [issueRes, zoneRes, hubRes, catRes] = await Promise.all([
+        supabase.from("issues").select("*").order("created_at", { ascending: false }).limit(1000),
         supabase.from("zones").select("code,name").order("code"),
         supabase.from("hubs").select("zone_code,name").order("name"),
         supabase.from("categories").select("name,subcategory"),
       ]);
 
       if (!mounted) return;
-      if (kamRes.error) setError(kamRes.error.message);
       if (issueRes.error) setError(issueRes.error.message);
 
+      // Filter issues: get KAM ids for accessible teams
+      const kamIds = await getKamIdsForTeams(acc.accessibleTeams);
+      const allIssues = (issueRes.data ?? []) as Issue[];
+      const visibleIssues = kamIds.length > 0
+        ? allIssues.filter((i) => kamIds.includes(i.kam_id))
+        : [];
+
       setKam(kamRes.data ?? null);
-      setIssues((issueRes.data ?? []) as Issue[]);
+      setIssues(visibleIssues);
       setZones(zoneRes.data ?? []);
       setHubs(hubRes.data ?? []);
       setCategories(Array.from(new Set((catRes.data ?? []).map((c) => c.name))).sort());
@@ -189,26 +225,49 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Nav email={user.email} name={kam?.full_name ?? user.email.split("@")[0]} />
+      <Nav
+        email={user.email}
+        name={kam?.full_name ?? access?.name ?? user.email.split("@")[0]}
+        role={access?.role ?? "Member"}
+        teamName={access?.teamName ?? ""}
+      />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Issue Dashboard</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-slate-900">Issue Dashboard</h1>
+              {access && (
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
+                    access.role === "Super Admin"
+                      ? "bg-purple-100 text-purple-800 ring-purple-200"
+                      : access.role === "Team Lead"
+                      ? "bg-blue-100 text-blue-800 ring-blue-200"
+                      : "bg-slate-100 text-slate-600 ring-slate-200"
+                  }`}
+                >
+                  {access.role}
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-sm text-slate-500">
-              Welcome back, {kam?.full_name ?? "KAM"} — here are your escalated issues.
+              Welcome back, {kam?.full_name ?? access?.name ?? "KAM"} —{" "}
+              {access?.teamName ? `${access.teamName} team` : "here are your escalated issues"}.
             </p>
           </div>
-          <Link
-            href="/escalate"
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700"
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-            </svg>
-            Escalate New Issue
-          </Link>
+          {access?.canEscalate && (
+            <Link
+              href="/escalate"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+              </svg>
+              Escalate New Issue
+            </Link>
+          )}
         </div>
 
         {error && (
@@ -410,7 +469,13 @@ export default function DashboardPage() {
         </div>
 
         <p className="mt-4 text-xs text-slate-400">
-          Showing {filtered.length} of {issues.length} issues · Each KAM only sees their own issues (row-level security).
+          Showing {filtered.length} of {issues.length} issues ·{" "}
+          {access?.teamName ? `${access.teamName} team` : "accessible teams"} ·{" "}
+          {access?.role === "Super Admin"
+            ? "Super Admin — all issues visible"
+            : access?.accessibleTeams.length > 1
+            ? `Seeing ${access.accessibleTeams.join(" + ")} team issues`
+            : "Team-scoped access"}
         </p>
 
         {/* SLA alarm banner */}

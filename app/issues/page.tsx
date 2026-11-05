@@ -14,12 +14,15 @@ import {
   SLA_STYLE,
   REMARK1_WINDOW_HOURS,
   REMARK2_WINDOW_HOURS,
+  getUserAccess,
+  getKamIdsForTeams,
   type Issue,
 } from "@/lib/supabase";
 
 export default function IssueDetailPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
+  const [access, setAccess] = useState<{ role: string; teamName: string; name: string } | null>(null);
   const [issue, setIssue] = useState<Issue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,6 +31,7 @@ export default function IssueDetailPage() {
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(false);
   const [issueId, setIssueId] = useState("");
+  const [canAccess, setCanAccess] = useState(true);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -45,7 +49,17 @@ export default function IssueDetailPage() {
         router.replace("/login");
         return;
       }
-      setUser({ email: session.user.email ?? "" });
+      const email = session.user.email ?? "";
+      setUser({ email });
+
+      // Check team membership
+      const acc = await getUserAccess(email);
+      if (!acc) {
+        setError("Your email is not in the team member list. Contact your administrator.");
+        setLoading(false);
+        return;
+      }
+      setAccess({ role: acc.role, teamName: acc.teamName, name: acc.name });
 
       if (issueId) {
         const { data, error: err } = await supabase
@@ -60,10 +74,17 @@ export default function IssueDetailPage() {
         } else if (!data) {
           setError("Issue not found — it may belong to another KAM or be deleted.");
         } else {
+          // Check if user can access this issue (kam_id in accessible teams)
+          const kamIds = await getKamIdsForTeams(acc.accessibleTeams);
           const iss = data as Issue;
-          setIssue(iss);
-          setNewStatus(iss.status);
-          setResolutionNote(iss.resolution_note ?? "");
+          if (!kamIds.includes(iss.kam_id)) {
+            setCanAccess(false);
+            setError("Access denied — this issue belongs to another team.");
+          } else {
+            setIssue(iss);
+            setNewStatus(iss.status);
+            setResolutionNote(iss.resolution_note ?? "");
+          }
         }
       } else {
         setError("No issue ID provided.");
@@ -124,7 +145,7 @@ export default function IssueDetailPage() {
   if (loading) {
     return (
       <>
-        <Nav email={user.email} name={user.email.split("@")[0]} />
+        <Nav email={user.email} name={access?.name ?? user.email.split("@")[0]} role={access?.role} teamName={access?.teamName} />
         <div className="flex min-h-[60vh] items-center justify-center text-slate-500">
           Loading issue…
         </div>
@@ -135,9 +156,11 @@ export default function IssueDetailPage() {
   if (!issue) {
     return (
       <>
-        <Nav email={user.email} name={user.email.split("@")[0]} />
+        <Nav email={user.email} name={access?.name ?? user.email.split("@")[0]} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-2xl px-4 py-10">
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-700">
+          <div className={`rounded-2xl border p-6 text-sm font-medium ${
+            canAccess ? "border-red-200 bg-red-50 text-red-700" : "border-red-200 bg-red-50 text-red-700"
+          }`}>
             {error || "Issue not found."}
           </div>
           <Link
@@ -153,7 +176,7 @@ export default function IssueDetailPage() {
 
   return (
     <>
-      <Nav email={user.email} name={user.email.split("@")[0]} />
+      <Nav email={user.email} name={access?.name ?? user.email.split("@")[0]} role={access?.role} teamName={access?.teamName} />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="mb-2">
