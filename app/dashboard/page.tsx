@@ -475,7 +475,7 @@ export default function DashboardPage() {
           {access?.teamName ? `${access.teamName} team` : "accessible teams"} ·{" "}
           {access?.role === "Super Admin"
             ? "Super Admin — all issues visible"
-            : access?.accessibleTeams.length > 1
+            : access?.accessibleTeams && access.accessibleTeams.length > 1
             ? `Seeing ${access.accessibleTeams.join(" + ")} team issues`
             : "Team-scoped access"}
         </p>
