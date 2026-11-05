@@ -1,17 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #2552e8;
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dbe6fe;
-  --color-brand-200: #bfd3fe;
-  --color-brand-300: #93b4fd;
-  --color-brand-400: #6090fa;
-  --color-brand-500: #3b6df6;
-  --color-brand-600: #2552e8;
-  --color-brand-700: #1e40db;
-  --color-brand-800: #1e35af;
-  --color-brand-900: #1e3089;
+  --color-brand: #ffca00;
+  --color-brand-50: #fffef0;
+  --color-brand-100: #fff9d6;
+  --color-brand-200: #fff2a8;
+  --color-brand-300: #ffea70;
+  --color-brand-400: #ffdf38;
+  --color-brand-500: #ffca00;
+  --color-brand-600: #e6b500;
+  --color-brand-700: #bf9d00;
+  --color-brand-800: #997f00;
+  --color-brand-900: #7a6600;
+}
+
+/* Dark mode CSS variables */
+:root {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --border-color-light: #f1f5f9;
+}
+
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --border-color-light: #1e293b;
 }
 
 html,
@@ -24,8 +47,9 @@ body {
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  background-color: #f1f5f9;
-  color: #0f172a;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s, color 0.2s;
 }
 
 /* Custom scrollbar */
@@ -37,13 +61,13 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-color);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-muted);
   background-clip: padding-box;
   border: 2px solid transparent;
 }
@@ -61,4 +85,20 @@ body {
 }
 .animate-fade-up {
   animation: fadeUp 0.35s ease-out both;
+}
+
+/* Card backgrounds in dark mode */
+.dark .rounded-2xl {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+/* Table headers in dark mode */
+.dark thead {
+  background-color: var(--bg-secondary);
+}
+
+/* Hover states in dark mode */
+.dark .hover\:bg-slate-50:hover {
+  background-color: rgba(51, 65, 85, 0.5);
 }

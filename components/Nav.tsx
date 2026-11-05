@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Logo } from "@/components/ui";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Nav({
   email,
@@ -27,13 +27,11 @@ export default function Nav({
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="text-brand">
-            <Logo className="h-8 w-8" />
-          </span>
-          <span className="text-[15px] font-bold leading-tight text-slate-900">
+          <img src="/logo.jpg" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
+          <span className="text-[15px] font-bold leading-tight text-slate-900 dark:text-slate-100">
             KAM Issue
             <br />
             <span className="text-brand">Escalation Portal</span>
@@ -43,14 +41,14 @@ export default function Nav({
         <nav className="ml-4 flex items-center gap-1">
           <Link
             href="/dashboard"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           >
             Dashboard
           </Link>
           {role && (role === "Super Admin" || role === "Team Lead") && (
             <Link
               href="/escalate"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             >
               Escalate Issue
             </Link>
@@ -58,35 +56,36 @@ export default function Nav({
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle />
           <div className="hidden text-right sm:block">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-900">{name}</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{name}</span>
               {role && (
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset ${
                     role === "Super Admin"
-                      ? "bg-purple-100 text-purple-800 ring-purple-200"
+                      ? "bg-purple-100 text-purple-800 ring-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:ring-purple-700"
                       : role === "Team Lead"
-                      ? "bg-blue-100 text-blue-800 ring-blue-200"
-                      : "bg-slate-100 text-slate-600 ring-slate-200"
+                      ? "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:ring-blue-700"
+                      : "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600"
                   }`}
                 >
                   {role}
                 </span>
               )}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
               {email}
               {teamName ? ` · ${teamName}` : ""}
             </div>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-slate-900">
             {name.charAt(0).toUpperCase() || "K"}
           </div>
           <button
             onClick={logout}
             disabled={loading}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             {loading ? "…" : "Logout"}
           </button>

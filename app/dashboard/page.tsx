@@ -239,22 +239,22 @@ export default function DashboardPage() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">Issue Dashboard</h1>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Issue Dashboard</h1>
               {access && (
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
                     access.role === "Super Admin"
-                      ? "bg-purple-100 text-purple-800 ring-purple-200"
+                      ? "bg-purple-100 text-purple-800 ring-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:ring-purple-700"
                       : access.role === "Team Lead"
-                      ? "bg-blue-100 text-blue-800 ring-blue-200"
-                      : "bg-slate-100 text-slate-600 ring-slate-200"
+                      ? "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:ring-blue-700"
+                      : "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600"
                   }`}
                 >
                   {access.role}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Welcome back, {kam?.full_name ?? access?.name ?? "KAM"} —{" "}
               {access?.teamName ? `${access.teamName} team` : "here are your escalated issues"}.
             </p>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
           {access?.canEscalate && (
             <Link
               href="/escalate"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-brand-200 transition hover:bg-brand-600"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                 <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
