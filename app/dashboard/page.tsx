@@ -75,6 +75,7 @@ export default function DashboardPage() {
   const [zones, setZones] = useState<{ code: string; name: string }[]>([]);
   const [hubs, setHubs] = useState<{ zone_code: string; name: string }[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [catPriorityMap, setCatPriorityMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -116,7 +117,7 @@ export default function DashboardPage() {
         supabase.from("issues").select("*").order("created_at", { ascending: false }).limit(1000),
         supabase.from("zones").select("code,name").order("code"),
         supabase.from("hubs").select("zone_code,name").order("name"),
-        supabase.from("categories").select("name,subcategory"),
+        supabase.from("categories").select("name,subcategory,priority"),
       ]);
 
       if (!mounted) return;
@@ -137,7 +138,14 @@ export default function DashboardPage() {
       if (mounted) setIbKamIds(ibIds);
       setZones(zoneRes.data ?? []);
       setHubs(hubRes.data ?? []);
-      setCategories(Array.from(new Set((catRes.data ?? []).map((c) => c.name))).sort());
+      const catData = catRes.data ?? [];
+      setCategories(Array.from(new Set(catData.map((c) => c.name))).sort());
+      const pMap: Record<string, string> = {};
+      catData.forEach((c) => {
+        const key = `${c.name} → ${c.subcategory}`;
+        pMap[key] = c.priority ?? "Medium";
+      });
+      setCatPriorityMap(pMap);
       setLoading(false);
     })();
     return () => {
@@ -604,7 +612,16 @@ export default function DashboardPage() {
                       <div className="mt-1 text-xs text-slate-500">{issue.hub ?? "—"}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-700">{issue.category}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{issue.category}</span>
+                        {(() => {
+                          const pKey = `${issue.category} → ${issue.subcategory}`;
+                          const p = catPriorityMap[pKey];
+                          if (!p) return null;
+                          const style = p === "Critical" ? "bg-red-100 text-red-700 ring-red-200" : p === "High" ? "bg-orange-100 text-orange-700 ring-orange-200" : "bg-sky-100 text-sky-700 ring-sky-200";
+                          return <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset ${style}`}>{p}</span>;
+                        })()}
+                      </div>
                       <div className="text-xs text-slate-400">{issue.subcategory}</div>
                     </td>
                     <td className="px-4 py-3">

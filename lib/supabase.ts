@@ -61,7 +61,7 @@ export const OPS_STATUS_STYLE: Record<string, string> = {
 export type RefData = {
   zones: { code: string; name: string }[];
   hubs: { zone_code: string; name: string }[];
-  categories: { name: string; subcategory: string }[];
+  categories: { name: string; subcategory: string; priority: string }[];
 };
 
 export const STATUSES = [
