@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [access, setAccess] = useState<{
+    name: string;
     role: string;
     teamName: string;
     accessibleTeams: string[];
@@ -76,6 +77,7 @@ export default function DashboardPage() {
         return;
       }
       setAccess({
+        name: acc.name,
         role: acc.role,
         teamName: acc.teamName,
         accessibleTeams: acc.accessibleTeams,
