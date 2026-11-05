@@ -108,3 +108,33 @@ components/
 lib/
   supabase.ts        supabase client, types, helpers
 ```
+
+## Issue activity log
+
+Every issue keeps a complete, append-only history of what happened and when.
+
+**Where to see it:** open any issue → the **Activity log** panel at the bottom of the page.
+It shows, for every event: the exact time (to the second, in your local timezone), what
+changed, who did it, and the before → after values. Use the filter chips
+(All / Follow-ups / Remarks / Status / Justifications), flip between newest/oldest,
+expand **Show details** for field-level changes, or **Export CSV** for a shareable copy.
+
+**How it is recorded:** the table `public.issue_events` is written by a database trigger
+(`trg_issues_log`) on `public.issues`. It fires on every insert, update and delete, so it
+also captures OPS remarks and status changes that arrive from the Google Sheet sync —
+not just actions taken in the app. Updates that change nothing are skipped.
+
+The log is read-only for clients: RLS allows `select` for authenticated users and revokes
+insert/update/delete, so history cannot be edited or erased from the browser. Deleting an
+issue keeps its log rows (the issue link is cleared, the reference number is retained).
+
+**Follow-ups no longer disappear.** The KAM **Follow Up** button stays available after it
+is clicked (it becomes **Follow Up Again**) and the CM follow-up steps can be re-logged,
+so each follow-up gets its own timestamped entry — `KAM follow-up #1`, `#2`, and so on.
+The panel header shows the last follow-up time and how many have been logged.
+
+**Migration:** `supabase/migrations/20261106_0001_issue_activity_log.sql` (already applied
+to the live project). It is additive — no existing column, policy or trigger is changed.
+Issues that existed before the log was enabled are backfilled from the timestamps already
+stored on the issue row; those entries are tagged *from saved record*, and where no exact
+time was ever stored, *time approximate*.

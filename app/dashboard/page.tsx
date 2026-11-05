@@ -534,13 +534,25 @@ export default function DashboardPage() {
           </button>
         );
       } else {
+        // Pickup → 1st → 2nd → 3rd, and the last step stays repeatable so
+        // every follow-up gets its own timestamped entry in the issue log.
+        const nextCm =
+          !issue.cm_action ? "Pickup"
+          : issue.cm_action === "Pickup" ? "1st Followup"
+          : issue.cm_action === "1st Followup" ? "2nd Followup"
+          : issue.cm_action === "2nd Followup" ? "3rd Followup"
+          : "3rd Followup";
+        const cmLabel = !issue.cm_action ? "Pick Up"
+          : issue.cm_action === "3rd Followup" ? "Followup Again"
+          : nextCm;
         cmBtn = (
           <button
-            onClick={() => onCmAction(issue.id, "Pickup")}
+            onClick={() => onCmAction(issue.id, nextCm)}
             disabled={updatingId === issue.id}
+            title={issue.cm_action_at ? `Last CM action: ${formatDateTime(issue.cm_action_at)}` : "No CM action yet"}
             className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-900 dark:text-brand-400 hover:bg-brand-500/25 disabled:opacity-50"
           >
-            Pick Up
+            {cmLabel}
           </button>
         );
       }
@@ -562,9 +574,10 @@ export default function DashboardPage() {
           <button
             onClick={() => onKamAction(issue.id)}
             disabled={updatingId === issue.id}
+            title={issue.kam_followup_at ? `Last follow-up: ${formatDateTime(issue.kam_followup_at)} — click to log another` : "Log a follow-up"}
             className="rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-500/25 disabled:opacity-50"
           >
-            Follow Up
+            {issue.kam_followup_at ? "Follow Up Again" : "Follow Up"}
           </button>
         );
       }

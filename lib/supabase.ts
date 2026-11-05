@@ -526,3 +526,178 @@ export function getEffectiveStatus(issue: Issue): string {
   }
   return issue.status;
 }
+
+/* ----------------------------------------------------------------------- *
+ *  Issue activity log                                                     *
+ *  • public.issue_events is an append-only audit trail written by a DB    *
+ *    trigger on public.issues — it captures every insert/update/delete,   *
+ *    including OPS remarks synced from the Google Sheet.                  *
+ *  • The client can only read it (RLS); it can never edit history.        *
+ * ----------------------------------------------------------------------- */
+
+export type IssueEventChange = {
+  field: string;
+  old: unknown;
+  new: unknown;
+};
+
+export type IssueEventMeta = {
+  remark?: string | null;
+  occurrence?: number;
+  action?: string | null;
+  reconstructed?: boolean;
+  time_approximate?: boolean;
+  snapshot?: Record<string, unknown>;
+};
+
+export type IssueEvent = {
+  id: string;
+  issue_id: string | null;
+  reference_no: string;
+  event_type: string;
+  event_label: string;
+  actor_email: string | null;
+  actor_name: string | null;
+  actor_role: string | null;
+  source: "app" | "sheet" | "system" | "backfill" | string;
+  changes: IssueEventChange[];
+  meta: IssueEventMeta;
+  is_backfill: boolean;
+  created_at: string;
+};
+
+/** Full history for one issue, oldest first. */
+export async function fetchIssueEvents(issueId: string): Promise<IssueEvent[]> {
+  const { data, error } = await supabase
+    .from("issue_events")
+    .select("*")
+    .eq("issue_id", issueId)
+    .order("created_at", { ascending: true })
+    .limit(1000);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as IssueEvent[];
+}
+
+/** 05 Nov 2026, 14:32:07 — the log always shows seconds. */
+export function formatLogTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+/** Clock-only, for rows grouped under a date heading. */
+export function formatLogClock(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+/** Day heading, e.g. "Thursday, 05 Nov 2026". */
+export function formatLogDay(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** "just now", "12 min ago", "3 h ago", "5 d ago". */
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const secs = Math.round((now.getTime() - d.getTime()) / 1000);
+  if (secs < 0) return "scheduled";
+  if (secs < 45) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} h ago`;
+  const days = Math.round(hrs / 24);
+  if (days < 30) return `${days} d ago`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months} mo ago`;
+  return `${Math.round(months / 12)} y ago`;
+}
+
+/** Human labels for the raw column names stored in changes[]. */
+export const EVENT_FIELD_LABEL: Record<string, string> = {
+  status: "Status",
+  ops_status: "OPS status",
+  ops_status_at: "OPS status time",
+  ops_remark1: "OPS 1st remarks",
+  ops_remark1_at: "1st remarks time",
+  ops_remark2: "OPS 2nd remarks",
+  ops_remark2_at: "2nd remarks time",
+  resolution_note: "Resolution note",
+  priority: "Priority",
+  zone: "Zone",
+  hub: "Hub",
+  category: "Category",
+  subcategory: "Subcategory",
+  description: "Description",
+  parcel_id: "Parcel ID",
+  merchant_name: "Merchant",
+  merchant_phone: "Merchant phone",
+  cm_action: "CM action",
+  cm_action_at: "CM action time",
+  cm_picked_by: "CM picked by",
+  cm_justification: "CM justification",
+  cm_justification_count: "CM justifications used",
+  cm_blocked: "CM blocked",
+  kam_followup_at: "KAM follow-up time",
+  kam_justification: "KAM justification",
+  kam_justification_count: "KAM justifications used",
+  kam_blocked: "KAM blocked",
+  kam_lead_alerted: "Lead alerted",
+};
+
+/** Renders a stored jsonb value for the before → after list. */
+export function formatEventValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") return String(value);
+  const text = String(value);
+  // ISO timestamps inside changes are shown in the same format as the log
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(text)) return formatLogTime(text);
+  return text;
+}
+
+/** Buckets used by the activity-log filter chips. */
+export const EVENT_GROUPS = {
+  all: () => true,
+  followups: (e: IssueEvent) => e.event_type === "kam_followup" || e.event_type === "cm_action",
+  remarks: (e: IssueEvent) =>
+    e.event_type === "ops_remark1" || e.event_type === "ops_remark2" || e.event_type === "resolution_note",
+  status: (e: IssueEvent) =>
+    e.event_type === "status_changed" || e.event_type === "ops_status_changed" || e.event_type === "created",
+  justifications: (e: IssueEvent) =>
+    e.event_type === "cm_justification" ||
+    e.event_type === "kam_justification" ||
+    e.event_type === "kam_blocked" ||
+    e.event_type === "cm_blocked" ||
+    e.event_type === "kam_unblocked" ||
+    e.event_type === "cm_unblocked",
+} as const;
+
+export type EventGroupKey = keyof typeof EVENT_GROUPS;
+
+/** How many times a given event type happened (e.g. follow-ups logged). */
+export function countEvents(events: IssueEvent[], type: string): number {
+  return events.filter((e) => e.event_type === type).length;
+}

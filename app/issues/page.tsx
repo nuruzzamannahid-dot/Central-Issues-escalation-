@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Nav from "@/components/Nav";
 import { Icon } from "@/components/icons";
 import { PriorityBadge, StatusBadge } from "@/components/ui";
+import IssueActivityLog from "@/components/IssueActivityLog";
 import {
   formatDateTime,
   supabase,
@@ -28,7 +29,11 @@ import {
   canPerformKamAction,
   KAM_JUSTIFICATION_MAX,
   autoSyncStatusFromRemarks,
+  fetchIssueEvents,
+  countEvents,
+  formatLogTime,
   type Issue,
+  type IssueEvent,
 } from "@/lib/supabase";
 
 export default function IssueDetailPage() {
@@ -47,6 +52,22 @@ export default function IssueDetailPage() {
   const [ibKamIds, setIbKamIds] = useState<string[]>([]);
   const [cmJustification, setCmJustification] = useState("");
   const [kamJustification, setKamJustification] = useState("");
+  const [events, setEvents] = useState<IssueEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState("");
+
+  const refreshEvents = useCallback(async (id: string) => {
+    setEventsLoading(true);
+    try {
+      const rows = await fetchIssueEvents(id);
+      setEvents(rows);
+      setEventsError("");
+    } catch (e) {
+      setEventsError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEventsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -106,6 +127,7 @@ export default function IssueDetailPage() {
             setIssue(iss);
             setNewStatus(iss.status);
             setResolutionNote(iss.resolution_note ?? "");
+            void refreshEvents(iss.id);
           }
         }
       } else {
@@ -116,7 +138,7 @@ export default function IssueDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [issueId, router]);
+  }, [issueId, router, refreshEvents]);
 
   async function saveUpdate() {
     if (!issue) return;
@@ -147,6 +169,7 @@ export default function IssueDetailPage() {
       setError(err.message);
       return;
     }
+    void refreshEvents(issue.id);
     setIssue({
       ...issue,
       status: newStatus as Issue["status"],
@@ -178,6 +201,7 @@ export default function IssueDetailPage() {
       cm_action_at: new Date().toISOString(),
       cm_picked_by: user?.email ?? null,
     });
+    void refreshEvents(id);
   }
 
   async function giveJustification(id: string, text: string) {
@@ -204,6 +228,7 @@ export default function IssueDetailPage() {
       cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
     });
     setCmJustification("");
+    void refreshEvents(id);
   }
 
   async function setKamAction(id: string) {
@@ -224,6 +249,7 @@ export default function IssueDetailPage() {
       ...issue,
       kam_followup_at: new Date().toISOString(),
     });
+    void refreshEvents(id);
   }
 
   async function giveKamJustification(id: string, text: string) {
@@ -252,6 +278,7 @@ export default function IssueDetailPage() {
       kam_lead_alerted: newCount >= KAM_JUSTIFICATION_MAX,
     });
     setKamJustification("");
+    void refreshEvents(id);
   }
 
   async function removeIssue() {
@@ -530,6 +557,12 @@ export default function IssueDetailPage() {
                   )}
                 </div>
 
+                {issue.cm_action_at && (
+                  <p className="mb-3 text-[11px] text-muted">
+                    Last CM action: <span className="font-mono text-secondary">{formatLogTime(issue.cm_action_at)}</span>
+                  </p>
+                )}
+
                 {/* SLA badge */}
                 {(() => {
                   const s = getCmActionSlaState(issue);
@@ -595,6 +628,15 @@ export default function IssueDetailPage() {
                     )}
                     {issue.cm_action === "1st Followup" && (
                       <button
+                        onClick={() => setCmAction(issue.id, "1st Followup")}
+                        disabled={saving}
+                        className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-700 dark:text-blue-300 transition hover:bg-blue-500/20 disabled:opacity-60"
+                      >
+                        Log 1st Followup again
+                      </button>
+                    )}
+                    {issue.cm_action === "1st Followup" && (
+                      <button
                         onClick={() => setCmAction(issue.id, "2nd Followup")}
                         disabled={saving}
                         className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
@@ -604,11 +646,29 @@ export default function IssueDetailPage() {
                     )}
                     {issue.cm_action === "2nd Followup" && (
                       <button
+                        onClick={() => setCmAction(issue.id, "2nd Followup")}
+                        disabled={saving}
+                        className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-700 dark:text-sky-300 transition hover:bg-sky-500/20 disabled:opacity-60"
+                      >
+                        Log 2nd Followup again
+                      </button>
+                    )}
+                    {issue.cm_action === "2nd Followup" && (
+                      <button
                         onClick={() => setCmAction(issue.id, "3rd Followup")}
                         disabled={saving}
                         className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                       >
                         3rd Followup →
+                      </button>
+                    )}
+                    {issue.cm_action === "3rd Followup" && (
+                      <button
+                        onClick={() => setCmAction(issue.id, "3rd Followup")}
+                        disabled={saving}
+                        className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-60"
+                      >
+                        Log 3rd Followup again
                       </button>
                     )}
                     {!issue.cm_action && cmPickupSlaBreached && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
@@ -675,10 +735,17 @@ export default function IssueDetailPage() {
                   </h2>
                   {issue.kam_followup_at && (
                     <span className="inline-flex rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200 ring-1 ring-inset ring-emerald-200">
-                      Follow-up done
+                      Follow-up done · {Math.max(countEvents(events, "kam_followup"), 1)} logged
                     </span>
                   )}
                 </div>
+
+                {issue.kam_followup_at && (
+                  <p className="mb-3 text-[11px] text-muted">
+                    Last follow-up: <span className="font-mono text-secondary">{formatLogTime(issue.kam_followup_at)}</span>
+                    {" · "}every follow-up is kept in the activity log below.
+                  </p>
+                )}
 
                 {/* SLA badge */}
                 {(() => {
@@ -739,13 +806,13 @@ export default function IssueDetailPage() {
                   const kamSlaBreached = !issue.kam_followup_at && kamSlaDetail.level === "breach";
                   return canPerformKamAction(access.role, access.teamName, issue.kam_blocked) && (
                   <div className="flex flex-wrap gap-2">
-                    {!issue.kam_followup_at && (!kamSlaBreached || issue.kam_justification_count > 0) && (
+                    {(!kamSlaBreached || issue.kam_justification_count > 0) && (
                       <button
                         onClick={() => setKamAction(issue.id)}
                         disabled={saving}
                         className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
                       >
-                        <Icon name="check" className="h-4 w-4" /> Follow Up
+                        <Icon name="check" className="h-4 w-4" /> {issue.kam_followup_at ? "Follow Up Again" : "Follow Up"}
                       </button>
                     )}
                     {!issue.kam_followup_at && kamSlaBreached && !issue.kam_blocked && (issue.kam_justification_count ?? 0) < KAM_JUSTIFICATION_MAX && (
@@ -803,28 +870,18 @@ export default function IssueDetailPage() {
               </section>
             )}
 
-            <div className="glass rounded-2xl p-6">
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Timeline
-              </div>
-              <ol className="mt-3 space-y-3 text-xs">
-                <li className="flex gap-3">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand" />
-                  <div>
-                    <div className="font-semibold text-secondary">Issue escalated</div>
-                    <div className="text-muted">{formatDateTime(issue.created_at)}</div>
-                  </div>
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-track" />
-                  <div>
-                    <div className="font-semibold text-secondary">Last updated</div>
-                    <div className="text-muted">{formatDateTime(issue.updated_at)}</div>
-                  </div>
-                </li>
-              </ol>
-            </div>
           </div>
+        </div>
+
+        {/* Full history — full width so long remarks and before → after stay readable */}
+        <div className="mt-6">
+          <IssueActivityLog
+            events={events}
+            loading={eventsLoading}
+            error={eventsError}
+            onRefresh={() => refreshEvents(issue.id)}
+            referenceNo={issue.reference_no}
+          />
         </div>
       </main>
     </>
