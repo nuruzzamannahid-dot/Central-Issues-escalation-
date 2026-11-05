@@ -824,6 +824,7 @@ export default function DashboardPage() {
                       <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">Status</th>
                       <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">SLA</th>
                       <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">Actions</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">Remarks</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -889,6 +890,24 @@ export default function DashboardPage() {
                               onKamAction={handleKamAction}
                               onJustify={(type) => setJustifyTarget({ type, issueId: issue.id })}
                             />
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex flex-col gap-1">
+                              {issue.ops_remark1 ? (
+                                <div className="rounded-md bg-slate-50 px-2 py-1 text-[11px] text-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
+                                  <span className="font-semibold text-slate-400 dark:text-slate-500">R1:</span> {issue.ops_remark1}
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-slate-300 dark:text-slate-700">—</div>
+                              )}
+                              {issue.ops_remark2 ? (
+                                <div className="rounded-md bg-slate-50 px-2 py-1 text-[11px] text-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
+                                  <span className="font-semibold text-slate-400 dark:text-slate-500">R2:</span> {issue.ops_remark2}
+                                </div>
+                              ) : (
+                                !issue.ops_remark1 && <div className="text-[11px] text-slate-300 dark:text-slate-700">—</div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1062,6 +1081,7 @@ export default function DashboardPage() {
                       <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Status</th>
                       <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">SLA</th>
                       <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Updated</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Remarks</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1103,6 +1123,24 @@ export default function DashboardPage() {
                             )}
                           </td>
                           <td className="px-3 py-3 text-xs text-slate-400 dark:text-slate-500">{formatDate(issue.updated_at)}</td>
+                          <td className="px-3 py-3">
+                            <div className="flex flex-col gap-1">
+                              {issue.ops_remark1 ? (
+                                <div className="rounded-md bg-slate-50 px-2 py-1 text-[11px] text-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
+                                  <span className="font-semibold text-slate-400 dark:text-slate-500">R1:</span> {issue.ops_remark1}
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-slate-300 dark:text-slate-700">—</div>
+                              )}
+                              {issue.ops_remark2 ? (
+                                <div className="rounded-md bg-slate-50 px-2 py-1 text-[11px] text-slate-600 dark:bg-slate-800/50 dark:text-slate-300">
+                                  <span className="font-semibold text-slate-400 dark:text-slate-500">R2:</span> {issue.ops_remark2}
+                                </div>
+                              ) : (
+                                !issue.ops_remark1 && <div className="text-[11px] text-slate-300 dark:text-slate-700">—</div>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
