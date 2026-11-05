@@ -183,19 +183,19 @@ export function getCmActionSlaState(
   // Action in progress — SLA depends on which action
   if (issue.cm_action === "Pickup") {
     // After pickup, 1st followup SLA applies (2 hours)
-    const deadline = new Date(actionAt.getTime() + FOLLOWUP1_SLA_HOURS * 3600000);
+    const deadline = new Date(actionAt!.getTime() + FOLLOWUP1_SLA_HOURS * 3600000);
     if (now.getTime() > deadline.getTime()) {
       return { level: "breach", label: "SLA BREACH — 1st Followup overdue", deadline };
     }
   } else if (issue.cm_action === "1st Followup") {
     // 2nd followup SLA (1.5 hours)
-    const deadline = new Date(actionAt.getTime() + FOLLOWUP2_SLA_HOURS * 3600000);
+    const deadline = new Date(actionAt!.getTime() + FOLLOWUP2_SLA_HOURS * 3600000);
     if (now.getTime() > deadline.getTime()) {
       return { level: "breach", label: "SLA BREACH — 2nd Followup overdue", deadline };
     }
   } else if (issue.cm_action === "2nd Followup") {
     // 3rd followup SLA (1 hour)
-    const deadline = new Date(actionAt.getTime() + FOLLOWUP3_SLA_HOURS * 3600000);
+    const deadline = new Date(actionAt!.getTime() + FOLLOWUP3_SLA_HOURS * 3600000);
     if (now.getTime() > deadline.getTime()) {
       return { level: "breach", label: "SLA BREACH — 3rd Followup overdue", deadline };
     }
