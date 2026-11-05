@@ -69,8 +69,9 @@ export default function DashboardPage() {
       const email = session.user.email ?? "";
       setUser({ email });
 
-      // Get RBAC access profile
-      const acc = await getUserAccess(email);
+      // Get RBAC access profile (honors the access chosen at login)
+      const savedRole = sessionStorage.getItem("kam_access_role");
+      const acc = await getUserAccess(email, savedRole ?? undefined);
       if (!acc) {
         setError("Your email is not in the team member list. Contact your administrator.");
         setLoading(false);

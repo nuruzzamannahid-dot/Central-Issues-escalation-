@@ -22,6 +22,7 @@ export default function Nav({
 
   async function logout() {
     setLoading(true);
+    sessionStorage.removeItem("kam_access_role");
     await supabase.auth.signOut();
     router.replace("/login");
   }

@@ -176,14 +176,14 @@ export type TeamMember = {
   designation: string | null;
   email: string;
   epid: string | null;
-  role: "Super Admin" | "Team Lead" | "Member";
+  role: string;
   created_at: string;
 };
 
 export type UserAccess = {
   email: string;
   name: string;
-  role: "Super Admin" | "Team Lead" | "Member";
+  role: string;
   teamName: string;
   accessibleTeams: string[]; // team names the user can see issues for
   canEscalate: boolean; // Super Admin or Team Lead
@@ -201,30 +201,61 @@ export function getAccessibleTeamNames(
   return [teamName];
 }
 
-/** Looks up the user's team membership and returns their access profile. */
+/** Fetches all team_members rows for an email (an account can hold multiple accesses). */
+export async function getUserAccessOptions(email: string): Promise<TeamMember[]> {
+  const { data, error } = await supabase
+    .from("team_members")
+    .select("*")
+    .eq("email", email);
+  if (error || !data) return [];
+  return data as TeamMember[];
+}
+
+/** Looks up the user's team membership and returns their access profile.
+ *  Pass a role to select a specific access (multi-access accounts). */
 export async function getUserAccess(
-  email: string
+  email: string,
+  role?: string
 ): Promise<UserAccess | null> {
   const { data, error } = await supabase
     .from("team_members")
     .select("*")
-    .eq("email", email)
-    .limit(1);
+    .eq("email", email);
 
   if (error || !data || data.length === 0) return null;
 
-  const member = data[0] as TeamMember;
-  const role = member.role as "Super Admin" | "Team Lead" | "Member";
-  const accessibleTeams = getAccessibleTeamNames(role, member.team_name);
+  let member = data[0] as TeamMember;
+  if (role) {
+    const match = data.find((m) => m.role === role);
+    if (match) member = match as TeamMember;
+  }
+  const accRole = member.role;
+  const accessibleTeams = getAccessibleTeamNames(accRole, member.team_name);
 
   return {
     email: member.email,
     name: member.member_name,
-    role,
+    role: accRole,
     teamName: member.team_name,
     accessibleTeams,
-    canEscalate: role === "Super Admin" || role === "Team Lead",
+    canEscalate: accRole === "Super Admin" || accRole === "Team Lead",
   };
+}
+
+/** Friendly label for an access option shown in the login picker. */
+export function accessLabel(role: string, teamName: string): string {
+  if (role === "Super Admin") return "Super Admin";
+  if (role === "Team Lead") return `Team Lead · ${teamName}`;
+  if (role === "CM") return "CM Member";
+  return role || "Member";
+}
+
+/** Short description of what an access can see. */
+export function describeAccess(role: string, teamName: string): string {
+  if (role === "Super Admin") return "Sees all issues";
+  const teams = getAccessibleTeamNames(role, teamName);
+  if (teams.includes("__ALL__")) return "Sees all issues";
+  return `Sees ${teams.join(" + ")} issues`;
 }
 
 /** Fetches the list of KAM ids whose emails belong to the given teams. */
