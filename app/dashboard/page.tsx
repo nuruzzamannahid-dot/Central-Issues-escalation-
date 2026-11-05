@@ -11,6 +11,7 @@ import {
   STATUSES,
   PRIORITIES,
   OPS_STATUS_STYLE,
+  STATUS_STYLE,
   getSlaState,
   SLA_STYLE,
   getCmActionSlaState,
@@ -197,7 +198,7 @@ export default function DashboardPage() {
       const cm = getCmActionSlaState(i);
       if (cm.level === "breach" || cm.level === "critical") cmBreach++;
       const km = getKamActionSlaState(i);
-      if (km.level === "breach" || km.level === "critical") kamBreach++;
+      if (km.level === "breach") kamBreach++;
     }
     return { remark1Breach, remark2Critical, cmBreach, kamBreach };
   }, [filteredIssues, tick]);
@@ -887,64 +888,18 @@ export default function DashboardPage() {
                             )}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                              {canCm && issue.zone && ibKamIds.includes(issue.kam_id) && (
-                                cmSla.level !== "ok" ? (
-                                  issue.cm_blocked ? (
-                                    <button
-                                      onClick={() => setJustifyTarget({ type: "cm", issueId: issue.id })}
-                                      className="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-400 hover:bg-red-500/25"
-                                    >
-                                      Justify
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => setJustifyTarget({ type: "cm", issueId: issue.id })}
-                                      className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
-                                    >
-                                      Justify
-                                    </button>
-                                  )
-                                ) : (
-                                  <button
-                                    onClick={() => handleCmAction(issue.id, "Pickup")}
-                                    disabled={updatingId === issue.id}
-                                    className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-400 hover:bg-brand-500/25 disabled:opacity-50"
-                                  >
-                                    Pick Up
-                                  </button>
-                                )
-                              )
-                              )}
-                              {canKam && (
-                                kamSla.level !== "ok" ? (
-                                  issue.kam_blocked ? (
-                                    <button
-                                      onClick={() => setJustifyTarget({ type: "kam", issueId: issue.id })}
-                                      className="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-400 hover:bg-red-500/25"
-                                    >
-                                      Justify
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => setJustifyTarget({ type: "kam", issueId: issue.id })}
-                                      className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
-                                    >
-                                      Justify
-                                    </button>
-                                  )
-                                ) : (
-                                  <button
-                                    onClick={() => handleKamAction(issue.id)}
-                                    disabled={updatingId === issue.id}
-                                    className="rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-400 hover:bg-purple-500/25 disabled:opacity-50"
-                                  >
-                                    Follow Up
-                                  </button>
-                                )
-                              )
-                              )}
-                            </div>
+                            <ActionButtons
+                              issue={issue}
+                              canCm={canCm}
+                              canKam={canKam}
+                              cmSla={cmSla}
+                              kamSla={kamSla}
+                              ibKamIds={ibKamIds}
+                              updatingId={updatingId}
+                              onCmAction={handleCmAction}
+                              onKamAction={handleKamAction}
+                              onJustify={(type) => setJustifyTarget({ type, issueId: issue.id })}
+                            />
                           </td>
                         </tr>
                       );
