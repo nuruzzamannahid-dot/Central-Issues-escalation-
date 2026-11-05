@@ -212,7 +212,7 @@ export default function EscalatePage() {
   }
 
   if (!user) {
-    return <div className="flex min-h-screen items-center justify-center text-slate-500">Loading…</div>;
+    return <div className="flex min-h-screen items-center justify-center text-slate-400 dark:text-slate-500">Loading…</div>;
   }
 
   if (denied) {
@@ -246,7 +246,7 @@ export default function EscalatePage() {
             </Link>
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Escalate a New Issue</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
             Capture parcel details, location and issue classification.
           </p>
         </div>
@@ -254,7 +254,7 @@ export default function EscalatePage() {
         <form onSubmit={submit} className="space-y-6">
           {/* Reference */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Reference</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Reference</h2>
             <Field label="Parcel / Order ID">
               <input value={parcelId} onChange={(e) => setParcelId(e.target.value)} placeholder="e.g. PAR-8842211" className="input" />
             </Field>
@@ -262,7 +262,7 @@ export default function EscalatePage() {
 
           {/* Location */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Zone & Hub</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Zone & Hub</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Zone *">
                 <select value={zone} onChange={(e) => { setZone(e.target.value); setHub(""); }} className="input">
@@ -271,7 +271,7 @@ export default function EscalatePage() {
                 </select>
               </Field>
               <Field label="Hub *">
-                <select value={hub} onChange={(e) => setHub(e.target.value)} disabled={!zone} className="input disabled:bg-slate-50 disabled:text-slate-400">
+                <select value={hub} onChange={(e) => setHub(e.target.value)} disabled={!zone} className="input disabled:bg-slate-50 disabled:text-slate-400 dark:text-slate-500 dark:text-slate-400">
                   <option value="">Select hub…</option>
                   {zoneHubs.map((h) => <option key={h.name} value={h.name}>{h.name}</option>)}
                 </select>
@@ -281,7 +281,7 @@ export default function EscalatePage() {
 
           {/* Classification */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issue Classification</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issue Classification</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Searchable Category Dropdown */}
               <div ref={catRef}>
@@ -325,7 +325,7 @@ export default function EscalatePage() {
                 <button
                   type="button"
                   onClick={() => setPriority("Medium")}
-                  className="ml-auto text-[11px] font-medium text-slate-400 hover:text-slate-600"
+                  className="ml-auto text-[11px] font-medium text-slate-400 dark:text-slate-500 dark:text-slate-400 hover:text-slate-400 dark:text-slate-600"
                 >
                   Change
                 </button>
@@ -356,7 +356,7 @@ export default function EscalatePage() {
 
           {/* Details */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issue Details</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issue Details</h2>
             <Field label="Description *" hint="Include what happened, when, and any evidence references.">
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} placeholder="Describe the issue in detail…" className="input resize-y" />
             </Field>
@@ -367,12 +367,12 @@ export default function EscalatePage() {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
               Reference will be auto-generated: <PriorityPill priority={priority} />{" "}
-              <span className="font-mono text-slate-500">ESC-YYMMDD-####</span>
+              <span className="font-mono text-slate-400 dark:text-slate-500">ESC-YYMMDD-####</span>
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={() => router.push("/dashboard")} className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+              <button type="button" onClick={() => router.push("/dashboard")} className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-400 dark:text-slate-600 transition hover:bg-slate-50">
                 Cancel
               </button>
               <button type="submit" disabled={submitting} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 disabled:opacity-60">
@@ -410,9 +410,9 @@ export default function EscalatePage() {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</label>
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">{hint}</p>}
     </div>
   );
 }
@@ -420,12 +420,12 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 function PriorityPill({ priority }: { priority: string }) {
   const style =
     priority === "Critical"
-      ? "bg-red-500/15 text-red-400 ring-red-500/20"
+      ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
       : priority === "High"
-      ? "bg-orange-500/15 text-orange-400 ring-orange-500/20"
+      ? "bg-orange-500/15 text-orange-600 dark:text-orange-400 ring-orange-500/20"
       : priority === "Medium"
-      ? "bg-sky-500/15 text-sky-400 ring-sky-500/20"
-      : "bg-slate-500/15 text-slate-400 ring-slate-500/20";
+      ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 ring-sky-500/20"
+      : "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20";
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${style}`}>
       {priority}
@@ -460,12 +460,12 @@ function Combobox({
         type="button"
         onClick={onToggle}
         disabled={disabled}
-        className={`input flex items-center justify-between text-left ${disabled ? "disabled:bg-slate-50 disabled:text-slate-400" : ""}`}
+        className={`input flex items-center justify-between text-left ${disabled ? "disabled:bg-slate-50 disabled:text-slate-400 dark:text-slate-500 dark:text-slate-400" : ""}`}
       >
-        <span className={value ? "font-medium text-slate-300" : "text-slate-400"}>
+        <span className={value ? "font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300" : "text-slate-400 dark:text-slate-500 dark:text-slate-400"}>
           {value || placeholder}
         </span>
-        <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`}>
+        <svg viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 text-slate-400 dark:text-slate-500 dark:text-slate-400 transition ${open ? "rotate-180" : ""}`}>
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
         </svg>
       </button>
@@ -482,7 +482,7 @@ function Combobox({
           </div>
           <div className="max-h-56 overflow-y-auto space-y-1">
             {options.length === 0 && (
-              <div className="px-3 py-2 text-center text-sm text-slate-400">No results</div>
+              <div className="px-3 py-2 text-center text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">No results</div>
             )}
             {options.map((opt) => (
               <button
@@ -490,7 +490,7 @@ function Combobox({
                 type="button"
                 onClick={() => onSelect(opt)}
                 className={`w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${
-                  value === opt ? "bg-blue-50 font-medium text-blue-700" : "text-slate-700"
+                  value === opt ? "bg-blue-50 font-medium text-blue-700" : "text-slate-600 dark:text-slate-300"
                 }`}
               >
                 {opt}

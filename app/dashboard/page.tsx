@@ -477,7 +477,7 @@ export default function DashboardPage() {
         cmBtn = (
           <button
             onClick={() => onJustify("cm")}
-            className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
+            className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-500/25"
           >
             Justify
           </button>
@@ -487,7 +487,7 @@ export default function DashboardPage() {
           <button
             onClick={() => onCmAction(issue.id, "Pickup")}
             disabled={updatingId === issue.id}
-            className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-400 hover:bg-brand-500/25 disabled:opacity-50"
+            className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-600 dark:text-brand-400 hover:bg-brand-500/25 disabled:opacity-50"
           >
             Pick Up
           </button>
@@ -501,7 +501,7 @@ export default function DashboardPage() {
         kamBtn = (
           <button
             onClick={() => onJustify("kam")}
-            className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
+            className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-500/25"
           >
             Justify
           </button>
@@ -511,7 +511,7 @@ export default function DashboardPage() {
           <button
             onClick={() => onKamAction(issue.id)}
             disabled={updatingId === issue.id}
-            className="rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-400 hover:bg-purple-500/25 disabled:opacity-50"
+            className="rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-500/25 disabled:opacity-50"
           >
             Follow Up
           </button>
@@ -532,7 +532,7 @@ export default function DashboardPage() {
     const dt = total || 1;
     return (
       <svg viewBox="0 0 120 120" className="h-36 w-36">
-        <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+        <circle cx="60" cy="60" r="45" fill="none" className="stroke-black/10 dark:stroke-white/10" strokeWidth="14" />
         {met > 0 && (
           <circle cx="60" cy="60" r="45" fill="none" stroke="#10b981" strokeWidth="14"
             strokeDasharray={`${(met / dt) * 282.7} 282.7`} strokeDashoffset="70.7"
@@ -544,8 +544,8 @@ export default function DashboardPage() {
             strokeDashoffset={`${70.7 - (met / dt) * 282.7}`}
             transform="rotate(-90 60 60)" strokeLinecap="round" />
         )}
-        <text x="60" y="55" textAnchor="middle" fill="#f1f5f9" fontSize="20" fontWeight="bold">{total}</text>
-        <text x="60" y="72" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9">{label}</text>
+        <text x="60" y="55" textAnchor="middle" className="fill-slate-900 dark:fill-slate-100" fontSize="20" fontWeight="bold">{total}</text>
+        <text x="60" y="72" textAnchor="middle" className="fill-slate-400 dark:fill-slate-500" fontSize="9">{label}</text>
       </svg>
     );
   }
@@ -570,7 +570,7 @@ export default function DashboardPage() {
     return (
       <div className="dashboard-bg min-h-screen">
         <div className="flex h-screen items-center justify-center">
-          <div className="glass rounded-2xl px-8 py-6 text-slate-400">Loading CarryBee Dashboard…</div>
+          <div className="glass rounded-2xl px-8 py-6 text-slate-400 dark:text-slate-500 dark:text-slate-400">Loading CarryBee Dashboard…</div>
         </div>
       </div>
     );
@@ -582,7 +582,7 @@ export default function DashboardPage() {
         <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-7xl px-4 py-12">
           <div className="glass rounded-2xl border-red-500/20 p-6">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         </div>
       </div>
@@ -605,7 +605,7 @@ export default function DashboardPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`glass-tab flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key ? "glass-tab-active" : "text-slate-400 hover:text-slate-200"}`}
+              className={`glass-tab flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key ? "glass-tab-active" : "text-slate-400 dark:text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
             >
               <span className="text-base">{tab.icon}</span>
               {tab.label}
@@ -613,7 +613,7 @@ export default function DashboardPage() {
           ))}
           <div className="ml-auto hidden items-center gap-2 sm:flex">
             <span className="pulse-dot h-2 w-2 rounded-full bg-emerald-400"></span>
-            <span className="text-xs text-slate-500">Live · {filteredIssues.length} issues</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">Live · {filteredIssues.length} issues</span>
           </div>
         </div>
       </div>
@@ -625,15 +625,15 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-slate-100">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   Welcome back, <span className="gradient-text">{access?.name}</span>
                 </h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-400 dark:text-slate-500">
                   {access?.role} · {access?.teamName} Team · {filteredIssues.length} issues
                 </p>
               </div>
               {access?.canEscalate && (
-                <Link href="/escalate" className="glass rounded-xl glow-brand-sm px-4 py-2.5 text-sm font-bold text-brand-500 transition hover:bg-brand-500/10">
+                <Link href="/escalate" className="glass rounded-xl glow-brand-sm px-4 py-2.5 text-sm font-bold text-brand-600 dark:text-brand-500 transition hover:bg-brand-500/10">
                   + Raise Issue
                 </Link>
               )}
@@ -641,19 +641,19 @@ export default function DashboardPage() {
 
             {/* Filter Bar */}
             <div className="glass flex flex-wrap items-center gap-3 rounded-2xl p-3">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Zone</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Zone</span>
               <select value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-200">
                 {zones.map((z) => <option key={z} value={z}>{z === "All" ? "All" : z}</option>)}
               </select>
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Hub</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Hub</span>
               <select value={hubFilter} onChange={(e) => setHubFilter(e.target.value)} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-200">
                 {hubs.map((h) => <option key={h} value={h}>{h === "All" ? "All" : h}</option>)}
               </select>
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">KAM</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAM</span>
               <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-200">
                 {teamNames.map((t) => <option key={t} value={t}>{t === "All" ? "All" : t}</option>)}
               </select>
-              <button onClick={() => { setZoneFilter("All"); setHubFilter("All"); setTeamFilter("All"); }} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">
+              <button onClick={() => { setZoneFilter("All"); setHubFilter("All"); setTeamFilter("All"); }} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 Reset
               </button>
             </div>
@@ -661,19 +661,19 @@ export default function DashboardPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
               {[
-                { label: "Total", value: kpis.total, icon: "📋", color: "text-brand-500", glow: "glow-brand-sm" },
-                { label: "Open", value: kpis.open, icon: "🔵", color: "text-blue-400", glow: "" },
-                { label: "In Progress", value: kpis.inProgress, icon: "🟣", color: "text-purple-400", glow: "" },
-                { label: "Resolved", value: kpis.resolved, icon: "✅", color: "text-emerald-400", glow: "" },
-                { label: "Not Remarks", value: kpis.notRemarks, icon: "⚠️", color: "text-red-400", glow: "" },
-                { label: "Improper", value: kpis.improper, icon: "🚫", color: "text-rose-400", glow: "" },
+                { label: "Total", value: kpis.total, icon: "📋", color: "text-brand-600 dark:text-brand-500", glow: "glow-brand-sm" },
+                { label: "Open", value: kpis.open, icon: "🔵", color: "text-blue-600 dark:text-blue-400", glow: "" },
+                { label: "In Progress", value: kpis.inProgress, icon: "🟣", color: "text-purple-600 dark:text-purple-400", glow: "" },
+                { label: "Resolved", value: kpis.resolved, icon: "✅", color: "text-emerald-600 dark:text-emerald-400", glow: "" },
+                { label: "Not Remarks", value: kpis.notRemarks, icon: "⚠️", color: "text-red-600 dark:text-red-400", glow: "" },
+                { label: "Improper", value: kpis.improper, icon: "🚫", color: "text-rose-600 dark:text-rose-400", glow: "" },
               ].map((k) => (
                 <div key={k.label} className={`glass card-lift rounded-2xl p-4 ${k.glow}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{k.icon}</span>
                   </div>
                   <div className={`mt-2 text-2xl font-bold ${k.color}`}>{k.value}</div>
-                  <div className="text-xs text-slate-500">{k.label}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">{k.label}</div>
                 </div>
               ))}
             </div>
@@ -681,17 +681,17 @@ export default function DashboardPage() {
             {/* SLA Alert Cards */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {[
-                { label: "1st Remarks Breach", value: slaAlerts.remark1Breach, color: "text-red-400", icon: "⏰" },
-                { label: "2nd Remarks Critical", value: slaAlerts.remark2Critical, color: "text-orange-400", icon: "🔥" },
-                { label: "CM SLA Breach", value: slaAlerts.cmBreach, color: "text-purple-400", icon: "🏪" },
-                { label: "KAM SLA Breach", value: slaAlerts.kamBreach, color: "text-pink-400", icon: "👥" },
+                { label: "1st Remarks Breach", value: slaAlerts.remark1Breach, color: "text-red-600 dark:text-red-400", icon: "⏰" },
+                { label: "2nd Remarks Critical", value: slaAlerts.remark2Critical, color: "text-orange-600 dark:text-orange-400", icon: "🔥" },
+                { label: "CM SLA Breach", value: slaAlerts.cmBreach, color: "text-purple-600 dark:text-purple-400", icon: "🏪" },
+                { label: "KAM SLA Breach", value: slaAlerts.kamBreach, color: "text-pink-600 dark:text-pink-400", icon: "👥" },
               ].map((s) => (
                 <div key={s.label} className="glass card-lift rounded-2xl p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{s.icon}</span>
-                    <span className={`text-2xl font-bold ${s.value > 0 ? s.color : "text-slate-600"}`}>{s.value}</span>
+                    <span className={`text-2xl font-bold ${s.value > 0 ? s.color : "text-slate-400 dark:text-slate-600"}`}>{s.value}</span>
                   </div>
-                  <div className="mt-2 text-xs text-slate-500">{s.label}</div>
+                  <div className="mt-2 text-xs text-slate-400 dark:text-slate-500">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -699,7 +699,7 @@ export default function DashboardPage() {
             {/* 7-day Trend + Status Donut */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="glass rounded-2xl p-5 lg:col-span-2">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">7-Day Trend</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">7-Day Trend</h2>
                 <div className="flex items-end justify-between gap-2 h-48">
                   {trend7d.map((d) => (
                     <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
@@ -707,7 +707,7 @@ export default function DashboardPage() {
                         <div className="w-3 rounded-t bg-brand-500/80 transition-all" style={{ height: `${(d.newIssues / maxTrend) * 100}%` }} title={`New: ${d.newIssues}`}></div>
                         <div className="w-3 rounded-t bg-emerald-500/60 transition-all" style={{ height: `${(d.resolved / maxTrend) * 100}%` }} title={`Resolved: ${d.resolved}`}></div>
                       </div>
-                      <span className="text-[10px] text-slate-500">{d.label}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">{d.label}</span>
                     </div>
                   ))}
                 </div>
@@ -718,26 +718,26 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Status Distribution</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Status Distribution</h2>
                 <div className="flex flex-col items-center gap-4">
                   <svg viewBox="0 0 120 120" className="h-36 w-36">
-                    <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+                    <circle cx="60" cy="60" r="45" fill="none" className="stroke-black/10 dark:stroke-white/10" strokeWidth="14" />
                     {statusDonut.map((s, i) => (
                       <circle key={i} cx="60" cy="60" r="45" fill="none" stroke={s.color} strokeWidth="14"
                         strokeDasharray={`${(s.count / statusDonutTotal) * 282.7} 282.7`}
                         strokeDashoffset={`${70.7 - (statusDonut.slice(0, i).reduce((sum, s2) => sum + (s2.count / statusDonutTotal) * 282.7, 0))}`}
                         transform="rotate(-90 60 60)" strokeLinecap="round" />
                     ))}
-                    <text x="60" y="58" textAnchor="middle" fill="#f1f5f9" fontSize="22" fontWeight="bold">{filteredIssues.length}</text>
-                    <text x="60" y="75" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9">issues</text>
+                    <text x="60" y="58" textAnchor="middle" className="fill-slate-900 dark:fill-slate-100" fontSize="22" fontWeight="bold">{filteredIssues.length}</text>
+                    <text x="60" y="75" textAnchor="middle" className="fill-slate-400 dark:fill-slate-500" fontSize="9">issues</text>
                   </svg>
                   <div className="flex flex-col gap-1 text-xs">
                     {statusDist.map((s) => (
                       <div key={s.name} className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full" style={{ background: statusColors[s.name] ?? "#6b7280" }}></span>
-                        <span className="text-slate-400">{s.name}:</span>
+                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">{s.name}:</span>
                         <span className="font-bold text-slate-200">{s.count}</span>
-                        <span className="text-slate-600">({s.pct}%)</span>
+                        <span className="text-slate-400 dark:text-slate-600">({s.pct}%)</span>
                       </div>
                     ))}
                   </div>
@@ -748,13 +748,13 @@ export default function DashboardPage() {
             {/* Category + Zone Charts + Priority */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Category</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issues by Category</h2>
                 <div className="space-y-2">
                   {categoryBreakdown.slice(0, 8).map((c) => (
                     <div key={c.name} className="flex items-center gap-2">
-                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={c.name}>{c.name}</div>
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400" title={c.name}>{c.name}</div>
                       <div className="flex-1">
-                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                        <div className="h-4 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (c.count / maxCategory) * 100)}%` }}>
                             <span className="text-[9px] font-bold text-slate-900">{c.count}</span>
                           </div>
@@ -762,18 +762,18 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
-                  {categoryBreakdown.length === 0 && <div className="text-sm text-slate-500">No data</div>}
+                  {categoryBreakdown.length === 0 && <div className="text-sm text-slate-400 dark:text-slate-500">No data</div>}
                 </div>
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Zone</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issues by Zone</h2>
                 <div className="space-y-2">
                   {zoneBreakdown.slice(0, 8).map((z) => (
                     <div key={z.name} className="flex items-center gap-2">
-                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={z.name}>{z.name}</div>
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400" title={z.name}>{z.name}</div>
                       <div className="flex-1">
-                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                        <div className="h-4 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-indigo-500 to-purple-400 px-2" style={{ width: `${Math.max(2, (z.count / maxZone) * 100)}%` }}>
                             <span className="text-[9px] font-bold text-white">{z.count}</span>
                           </div>
@@ -781,49 +781,49 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
-                  {zoneBreakdown.length === 0 && <div className="text-sm text-slate-500">No data</div>}
+                  {zoneBreakdown.length === 0 && <div className="text-sm text-slate-400 dark:text-slate-500">No data</div>}
                 </div>
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Priority Breakdown</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Priority Breakdown</h2>
                 <div className="flex flex-col gap-3">
                   {priorityBreakdown.map((p) => {
                     const colors: Record<string, string> = { Critical: "#ef4444", High: "#ffca00", Medium: "#3b82f6", Low: "#6b7280" };
                     return (
                       <div key={p.name}>
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-300">{p.name}</span>
-                          <span className="text-slate-500">{p.count} ({p.pct}%)</span>
+                          <span className="font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300">{p.name}</span>
+                          <span className="text-slate-400 dark:text-slate-500">{p.count} ({p.pct}%)</span>
                         </div>
-                        <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-2.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
                           <div className="h-full rounded-full transition-all" style={{ width: `${p.pct}%`, background: colors[p.name] ?? "#6b7280" }}></div>
                         </div>
                       </div>
                     );
                   })}
-                  {priorityBreakdown.length === 0 && <div className="text-sm text-slate-500">No data</div>}
+                  {priorityBreakdown.length === 0 && <div className="text-sm text-slate-400 dark:text-slate-500">No data</div>}
                 </div>
               </div>
             </div>
 
             {/* Recent Issues Table */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Recent Issues</h2>
-                <span className="text-xs text-slate-500">{filteredIssues.length} total</span>
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Recent Issues</h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500">{filteredIssues.length} total</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm glass-table">
                   <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="px-4 py-3 text-left font-semibold text-slate-500">Ref</th>
-                      <th className="px-3 py-3 text-left font-semibold text-slate-500">Merchant</th>
-                      <th className="px-3 py-3 text-left font-semibold text-slate-500">Category</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-500">Priority</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-500">Status</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-500">SLA</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-500">Actions</th>
+                    <tr className="border-b border-black/5 dark:border-white/5">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">Ref</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">Merchant</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">Category</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">Priority</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">Status</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">SLA</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -838,38 +838,38 @@ export default function DashboardPage() {
                       return (
                         <tr key={issue.id} className="transition">
                           <td className="px-4 py-3">
-                            <Link href={`/issues?id=${issue.id}`} className="font-mono text-xs font-semibold text-brand-400 hover:text-brand-300">
+                            <Link href={`/issues?id=${issue.id}`} className="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-300">
                               {issue.reference_no}
                             </Link>
                           </td>
-                          <td className="px-3 py-3 text-slate-300">{issue.merchant_name}</td>
+                          <td className="px-3 py-3 text-slate-600 dark:text-slate-300 dark:text-slate-300">{issue.merchant_name}</td>
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-300">{issue.category}</span>
+                              <span className="text-slate-600 dark:text-slate-300 dark:text-slate-300">{issue.category}</span>
                               <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset ${
-                                p === "Critical" ? "bg-red-500/15 text-red-400 ring-red-500/20"
-                                : p === "High" ? "bg-brand-500/15 text-brand-400 ring-brand-500/20"
-                                : "bg-blue-500/15 text-blue-400 ring-blue-500/20"
+                                p === "Critical" ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
+                                : p === "High" ? "bg-brand-500/15 text-brand-600 dark:text-brand-400 ring-brand-500/20"
+                                : "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-blue-500/20"
                               }`}>{p}</span>
                             </div>
-                            <div className="text-xs text-slate-500">{issue.subcategory}</div>
+                            <div className="text-xs text-slate-400 dark:text-slate-500">{issue.subcategory}</div>
                           </td>
                           <td className="px-3 py-3 text-center">
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                              issue.priority === "Critical" ? "bg-red-500/15 text-red-400 ring-red-500/20"
-                              : issue.priority === "High" ? "bg-brand-500/15 text-brand-400 ring-brand-500/20"
-                              : issue.priority === "Medium" ? "bg-blue-500/15 text-blue-400 ring-blue-500/20"
-                              : "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                              issue.priority === "Critical" ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
+                              : issue.priority === "High" ? "bg-brand-500/15 text-brand-600 dark:text-brand-400 ring-brand-500/20"
+                              : issue.priority === "Medium" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-blue-500/20"
+                              : "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20"
                             }`}>{issue.priority}</span>
                           </td>
                           <td className="px-3 py-3 text-center">
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                              STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                              STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20"
                             }`}>{issue.status}</span>
                           </td>
                           <td className="px-3 py-3 text-center">
                             {sla.level === "ok" ? (
-                              <span className="text-[11px] text-slate-600">—</span>
+                              <span className="text-[11px] text-slate-400 dark:text-slate-600">—</span>
                             ) : (
                               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${SLA_STYLE[sla.level]}`}>
                                 ⚠ {sla.level === "critical" ? "CRITICAL" : "BREACH"}
@@ -899,7 +899,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between text-xs text-slate-600">
+            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-600">
               <span>CarryBee · Internal use · Updated {formatDateTime(new Date().toISOString())}</span>
               <span>{filteredIssues.length} issues</span>
             </div>
@@ -910,26 +910,26 @@ export default function DashboardPage() {
         {activeTab === "analytics" && (
           <div className="animate-slide-in space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-100">Analytics</h1>
-              <p className="text-sm text-slate-500">Detailed issue analytics across all dimensions</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
+              <p className="text-sm text-slate-400 dark:text-slate-500">Detailed issue analytics across all dimensions</p>
             </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
               {[
-                { label: "Total", value: kpis.total, icon: "📋", color: "text-brand-500" },
-                { label: "Open", value: kpis.open, icon: "🔵", color: "text-blue-400" },
-                { label: "In Progress", value: kpis.inProgress, icon: "🟣", color: "text-purple-400" },
-                { label: "Resolved", value: kpis.resolved, icon: "✅", color: "text-emerald-400" },
-                { label: "Not Remarks", value: kpis.notRemarks, icon: "⚠️", color: "text-red-400" },
-                { label: "Improper", value: kpis.improper, icon: "🚫", color: "text-rose-400" },
+                { label: "Total", value: kpis.total, icon: "📋", color: "text-brand-600 dark:text-brand-500" },
+                { label: "Open", value: kpis.open, icon: "🔵", color: "text-blue-600 dark:text-blue-400" },
+                { label: "In Progress", value: kpis.inProgress, icon: "🟣", color: "text-purple-600 dark:text-purple-400" },
+                { label: "Resolved", value: kpis.resolved, icon: "✅", color: "text-emerald-600 dark:text-emerald-400" },
+                { label: "Not Remarks", value: kpis.notRemarks, icon: "⚠️", color: "text-red-600 dark:text-red-400" },
+                { label: "Improper", value: kpis.improper, icon: "🚫", color: "text-rose-600 dark:text-rose-400" },
               ].map((k) => (
                 <div key={k.label} className="glass card-lift rounded-2xl p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{k.icon}</span>
                   </div>
                   <div className={`mt-2 text-2xl font-bold ${k.color}`}>{k.value}</div>
-                  <div className="text-xs text-slate-500">{k.label}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">{k.label}</div>
                 </div>
               ))}
             </div>
@@ -937,24 +937,24 @@ export default function DashboardPage() {
             {/* SLA Alerts */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {[
-                { label: "1st Remarks Breach", value: slaAlerts.remark1Breach, color: "text-red-400", icon: "⏰" },
-                { label: "2nd Remarks Critical", value: slaAlerts.remark2Critical, color: "text-orange-400", icon: "🔥" },
-                { label: "CM SLA Breach", value: slaAlerts.cmBreach, color: "text-purple-400", icon: "🏪" },
-                { label: "KAM SLA Breach", value: slaAlerts.kamBreach, color: "text-pink-400", icon: "👥" },
+                { label: "1st Remarks Breach", value: slaAlerts.remark1Breach, color: "text-red-600 dark:text-red-400", icon: "⏰" },
+                { label: "2nd Remarks Critical", value: slaAlerts.remark2Critical, color: "text-orange-600 dark:text-orange-400", icon: "🔥" },
+                { label: "CM SLA Breach", value: slaAlerts.cmBreach, color: "text-purple-600 dark:text-purple-400", icon: "🏪" },
+                { label: "KAM SLA Breach", value: slaAlerts.kamBreach, color: "text-pink-600 dark:text-pink-400", icon: "👥" },
               ].map((s) => (
                 <div key={s.label} className="glass card-lift rounded-2xl p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{s.icon}</span>
-                    <span className={`text-2xl font-bold ${s.value > 0 ? s.color : "text-slate-600"}`}>{s.value}</span>
+                    <span className={`text-2xl font-bold ${s.value > 0 ? s.color : "text-slate-400 dark:text-slate-600"}`}>{s.value}</span>
                   </div>
-                  <div className="mt-2 text-xs text-slate-500">{s.label}</div>
+                  <div className="mt-2 text-xs text-slate-400 dark:text-slate-500">{s.label}</div>
                 </div>
               ))}
             </div>
 
             {/* 7-day Trend */}
             <div className="glass rounded-2xl p-5">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">7-Day Trend</h2>
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">7-Day Trend</h2>
               <div className="flex items-end justify-between gap-2 h-48">
                 {trend7d.map((d) => (
                   <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
@@ -962,7 +962,7 @@ export default function DashboardPage() {
                       <div className="w-3 rounded-t bg-brand-500/80 transition-all" style={{ height: `${(d.newIssues / maxTrend) * 100}%` }} title={`New: ${d.newIssues}`}></div>
                       <div className="w-3 rounded-t bg-emerald-500/60 transition-all" style={{ height: `${(d.resolved / maxTrend) * 100}%` }} title={`Resolved: ${d.resolved}`}></div>
                     </div>
-                    <span className="text-[10px] text-slate-500">{d.label}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">{d.label}</span>
                   </div>
                 ))}
               </div>
@@ -975,13 +975,13 @@ export default function DashboardPage() {
             {/* Category + Zone + Priority */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Category</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issues by Category</h2>
                 <div className="space-y-2">
                   {categoryBreakdown.slice(0, 10).map((c) => (
                     <div key={c.name} className="flex items-center gap-2">
-                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={c.name}>{c.name}</div>
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400" title={c.name}>{c.name}</div>
                       <div className="flex-1">
-                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                        <div className="h-4 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (c.count / maxCategory) * 100)}%` }}>
                             <span className="text-[9px] font-bold text-slate-900">{c.count}</span>
                           </div>
@@ -993,13 +993,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Zone</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Issues by Zone</h2>
                 <div className="space-y-2">
                   {zoneBreakdown.slice(0, 10).map((z) => (
                     <div key={z.name} className="flex items-center gap-2">
-                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={z.name}>{z.name}</div>
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400" title={z.name}>{z.name}</div>
                       <div className="flex-1">
-                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                        <div className="h-4 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-indigo-500 to-purple-400 px-2" style={{ width: `${Math.max(2, (z.count / maxZone) * 100)}%` }}>
                             <span className="text-[9px] font-bold text-white">{z.count}</span>
                           </div>
@@ -1011,32 +1011,32 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Priority Breakdown</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Priority Breakdown</h2>
                 <div className="flex flex-col gap-3">
                   {priorityBreakdown.map((p) => {
                     const colors: Record<string, string> = { Critical: "#ef4444", High: "#ffca00", Medium: "#3b82f6", Low: "#6b7280" };
                     return (
                       <div key={p.name}>
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-300">{p.name}</span>
-                          <span className="text-slate-500">{p.count} ({p.pct}%)</span>
+                          <span className="font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300">{p.name}</span>
+                          <span className="text-slate-400 dark:text-slate-500">{p.count} ({p.pct}%)</span>
                         </div>
-                        <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-2.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/5">
                           <div className="h-full rounded-full transition-all" style={{ width: `${p.pct}%`, background: colors[p.name] ?? "#6b7280" }}></div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                <div className="mt-4 border-t border-white/5 pt-4">
-                  <h3 className="mb-2 text-xs font-bold uppercase text-slate-500">Status Distribution</h3>
+                <div className="mt-4 border-t border-black/5 dark:border-white/5 pt-4">
+                  <h3 className="mb-2 text-xs font-bold uppercase text-slate-400 dark:text-slate-500">Status Distribution</h3>
                   <div className="space-y-1.5">
                     {statusDist.map((s) => (
                       <div key={s.name} className="flex items-center gap-2 text-xs">
                         <span className="h-2 w-2 rounded-full" style={{ background: statusColors[s.name] ?? "#6b7280" }}></span>
-                        <span className="text-slate-400">{s.name}:</span>
+                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">{s.name}:</span>
                         <span className="font-bold text-slate-200">{s.count}</span>
-                        <span className="text-slate-600">({s.pct}%)</span>
+                        <span className="text-slate-400 dark:text-slate-600">({s.pct}%)</span>
                       </div>
                     ))}
                   </div>
@@ -1046,22 +1046,22 @@ export default function DashboardPage() {
 
             {/* Full Recent Issues Table */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">All Issues</h2>
-                <span className="text-xs text-slate-500">{filteredIssues.length} total</span>
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">All Issues</h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500">{filteredIssues.length} total</span>
               </div>
               <div className="overflow-x-auto max-h-[500px]">
                 <table className="w-full text-sm glass-table">
                   <thead className="sticky top-0">
-                    <tr className="border-b border-white/5 bg-slate-900/80">
-                      <th className="px-4 py-3 text-left font-semibold text-slate-400">Ref</th>
-                      <th className="px-3 py-3 text-left font-semibold text-slate-400">Merchant</th>
-                      <th className="px-3 py-3 text-left font-semibold text-slate-400">Hub</th>
-                      <th className="px-3 py-3 text-left font-semibold text-slate-400">Category</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-400">Priority</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-400">Status</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-400">SLA</th>
-                      <th className="px-3 py-3 text-center font-semibold text-slate-400">Updated</th>
+                    <tr className="border-b border-black/5 dark:border-white/5 bg-slate-900/80">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Ref</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Merchant</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Hub</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Category</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Priority</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Status</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">SLA</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400 dark:text-slate-500 dark:text-slate-400">Updated</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1070,39 +1070,39 @@ export default function DashboardPage() {
                       return (
                         <tr key={issue.id} className="transition">
                           <td className="px-4 py-3">
-                            <Link href={`/issues?id=${issue.id}`} className="font-mono text-xs font-semibold text-brand-400 hover:text-brand-300">
+                            <Link href={`/issues?id=${issue.id}`} className="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-300">
                               {issue.reference_no}
                             </Link>
                           </td>
-                          <td className="px-3 py-3 text-slate-300">{issue.merchant_name}</td>
-                          <td className="px-3 py-3 text-slate-400">{issue.hub ?? "—"}</td>
+                          <td className="px-3 py-3 text-slate-600 dark:text-slate-300 dark:text-slate-300">{issue.merchant_name}</td>
+                          <td className="px-3 py-3 text-slate-400 dark:text-slate-500 dark:text-slate-400">{issue.hub ?? "—"}</td>
                           <td className="px-3 py-3">
-                            <div className="text-slate-300">{issue.category}</div>
-                            <div className="text-xs text-slate-500">{issue.subcategory}</div>
+                            <div className="text-slate-600 dark:text-slate-300 dark:text-slate-300">{issue.category}</div>
+                            <div className="text-xs text-slate-400 dark:text-slate-500">{issue.subcategory}</div>
                           </td>
                           <td className="px-3 py-3 text-center">
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                              issue.priority === "Critical" ? "bg-red-500/15 text-red-400 ring-red-500/20"
-                              : issue.priority === "High" ? "bg-brand-500/15 text-brand-400 ring-brand-500/20"
-                              : issue.priority === "Medium" ? "bg-blue-500/15 text-blue-400 ring-blue-500/20"
-                              : "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                              issue.priority === "Critical" ? "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
+                              : issue.priority === "High" ? "bg-brand-500/15 text-brand-600 dark:text-brand-400 ring-brand-500/20"
+                              : issue.priority === "Medium" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 ring-blue-500/20"
+                              : "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20"
                             }`}>{issue.priority}</span>
                           </td>
                           <td className="px-3 py-3 text-center">
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                              STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                              STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 dark:text-slate-500 dark:text-slate-400 ring-slate-500/20"
                             }`}>{issue.status}</span>
                           </td>
                           <td className="px-3 py-3 text-center">
                             {sla.level === "ok" ? (
-                              <span className="text-[11px] text-slate-600">—</span>
+                              <span className="text-[11px] text-slate-400 dark:text-slate-600">—</span>
                             ) : (
                               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${SLA_STYLE[sla.level]}`}>
                                 ⚠ {sla.level === "critical" ? "CRITICAL" : "BREACH"}
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-3 text-xs text-slate-500">{formatDate(issue.updated_at)}</td>
+                          <td className="px-3 py-3 text-xs text-slate-400 dark:text-slate-500">{formatDate(issue.updated_at)}</td>
                         </tr>
                       );
                     })}
@@ -1117,44 +1117,44 @@ export default function DashboardPage() {
         {activeTab === "hubs" && (
           <div className="animate-slide-in space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-100">Hub Performance</h1>
-              <p className="text-sm text-slate-500">Hub-level issue metrics, SLA compliance, and performance scorecard</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Hub Performance</h1>
+              <p className="text-sm text-slate-400 dark:text-slate-500">Hub-level issue metrics, SLA compliance, and performance scorecard</p>
             </div>
 
             {/* KPIs */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Hubs</div>
-                <div className="mt-1 text-3xl font-bold text-brand-400">{hubRows.length}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Hubs</div>
+                <div className="mt-1 text-3xl font-bold text-brand-600 dark:text-brand-400">{hubRows.length}</div>
               </div>
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Issues</div>
-                <div className="mt-1 text-3xl font-bold text-slate-100">{filteredIssues.length}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Issues</div>
+                <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{filteredIssues.length}</div>
               </div>
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SLA Breaches</div>
-                <div className="mt-1 text-3xl font-bold text-red-400">{hubSlaSplit.breached}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">SLA Breaches</div>
+                <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-400">{hubSlaSplit.breached}</div>
               </div>
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unjustified</div>
-                <div className="mt-1 text-3xl font-bold text-orange-400">{hubRows.reduce((s, r) => s + r.unjustified, 0)}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Unjustified</div>
+                <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-400">{hubRows.reduce((s, r) => s + r.unjustified, 0)}</div>
               </div>
             </div>
 
             {/* Needs Attention */}
             {hubNeedsAttention.length > 0 && (
               <div className="glass rounded-2xl border-amber-500/20">
-                <div className="flex items-center gap-2 border-b border-white/5 px-5 py-3">
+                <div className="flex items-center gap-2 border-b border-black/5 dark:border-white/5 px-5 py-3">
                   <span className="text-lg">⚠️</span>
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-amber-400">Needs Attention</h2>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">Needs Attention</h2>
                 </div>
                 <div className="flex flex-wrap gap-2 p-4">
                   {hubNeedsAttention.slice(0, 12).map((r) => (
-                    <span key={r.hub} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                    <span key={r.hub} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">
                       {r.hub}
-                      {r.slaBreached > 0 && <span className="text-red-400">{r.slaBreached} breach</span>}
-                      {r.cmBreach > 0 && <span className="text-orange-400">{r.cmBreach} CM</span>}
-                      {r.kamFailed > 0 && <span className="text-purple-400">{r.kamFailed} KAM</span>}
+                      {r.slaBreached > 0 && <span className="text-red-600 dark:text-red-400">{r.slaBreached} breach</span>}
+                      {r.cmBreach > 0 && <span className="text-orange-600 dark:text-orange-400">{r.cmBreach} CM</span>}
+                      {r.kamFailed > 0 && <span className="text-purple-600 dark:text-purple-400">{r.kamFailed} KAM</span>}
                     </span>
                   ))}
                 </div>
@@ -1164,13 +1164,13 @@ export default function DashboardPage() {
             {/* Charts */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Top 10 Hubs by Volume</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Top 10 Hubs by Volume</h2>
                 <div className="space-y-2">
                   {topHubsByVolume.map((r) => (
                     <div key={r.hub} className="flex items-center gap-2">
-                      <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-400" title={r.hub}>{r.hub}</div>
+                      <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-400 dark:text-slate-500 dark:text-slate-400" title={r.hub}>{r.hub}</div>
                       <div className="flex-1">
-                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                        <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (r.issues / maxVol) * 100)}%` }}>
                             <span className="text-[10px] font-bold text-slate-900">{r.issues}</span>
                           </div>
@@ -1182,13 +1182,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Hubs with Most SLA Breaches</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Hubs with Most SLA Breaches</h2>
                 <div className="space-y-2">
                   {topBreachedHubs.map((r) => (
                     <div key={r.hub} className="flex items-center gap-2">
-                      <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-400" title={r.hub}>{r.hub}</div>
+                      <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-400 dark:text-slate-500 dark:text-slate-400" title={r.hub}>{r.hub}</div>
                       <div className="flex-1">
-                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                        <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-red-600 to-red-400 px-2" style={{ width: `${Math.max(2, (r.slaBreached / maxHubBreach) * 100)}%` }}>
                             <span className="text-[10px] font-bold text-white">{r.slaBreached}</span>
                           </div>
@@ -1200,13 +1200,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Hub SLA Split</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Hub SLA Split</h2>
                 <div className="flex flex-col items-center gap-4">
                   <Donut met={hubSlaSplit.met} breached={hubSlaSplit.breached} pending={hubSlaSplit.pending} total={hubSlaSplit.total} label="total" />
                   <div className="flex flex-col gap-1 text-xs">
-                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-400">Met: <b className="text-slate-200">{hubSlaSplit.met}</b> ({pct(hubSlaSplit.met, hubSlaSplit.total)}%)</span></div>
-                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500"></span><span className="text-slate-400">Breached: <b className="text-slate-200">{hubSlaSplit.breached}</b> ({pct(hubSlaSplit.breached, hubSlaSplit.total)}%)</span></div>
-                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span className="text-slate-400">Pending: <b className="text-slate-200">{hubSlaSplit.pending}</b> ({pct(hubSlaSplit.pending, hubSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Met: <b className="text-slate-200">{hubSlaSplit.met}</b> ({pct(hubSlaSplit.met, hubSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500"></span><span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Breached: <b className="text-slate-200">{hubSlaSplit.breached}</b> ({pct(hubSlaSplit.breached, hubSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Pending: <b className="text-slate-200">{hubSlaSplit.pending}</b> ({pct(hubSlaSplit.pending, hubSlaSplit.total)}%)</span></div>
                   </div>
                 </div>
               </div>
@@ -1214,57 +1214,57 @@ export default function DashboardPage() {
 
             {/* Hub Scorecard Table */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Hub Scorecard · {hubRows.length} hubs</h2>
-                <span className="text-xs text-slate-500">Updated {formatDateTime(new Date().toISOString())}</span>
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Hub Scorecard · {hubRows.length} hubs</h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500">Updated {formatDateTime(new Date().toISOString())}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm glass-table">
                   <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="px-4 py-3 text-left font-semibold text-slate-500">HUB</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">ISSUES</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">HUB SLA%</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">AVG REPLY</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">COMMENT%</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">RESOLVED%</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SCORE</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM FAILED</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">CM BREACH</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">UNJUSTIFIED</th>
+                    <tr className="border-b border-black/5 dark:border-white/5">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">HUB</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">ISSUES</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">HUB SLA%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">AVG REPLY</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">COMMENT%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">RESOLVED%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM SCORE</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM FAILED</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">CM BREACH</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">UNJUSTIFIED</th>
                     </tr>
                   </thead>
                   <tbody>
                     {hubRows.map((r) => (
                       <tr key={r.hub} className="transition">
-                        <td className="px-4 py-2.5 font-medium text-slate-300">{r.hub}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-slate-100">{r.issues}</td>
+                        <td className="px-4 py-2.5 font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.hub}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{r.issues}</td>
                         <td className="px-3 py-2.5 text-right">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                            r.hubSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                            : r.hubSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
-                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                            r.hubSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                            : r.hubSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                           }`}>{r.hubSlaPct}%</span>
                         </td>
-                        <td className="px-3 py-2.5 text-right text-slate-400">{r.avgReply !== null ? `${r.avgReply.toFixed(1)}h` : "—"}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-slate-300">{r.commentPct}%</td>
+                        <td className="px-3 py-2.5 text-right text-slate-400 dark:text-slate-500 dark:text-slate-400">{r.avgReply !== null ? `${r.avgReply.toFixed(1)}h` : "—"}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.commentPct}%</td>
                         <td className="px-3 py-2.5 text-right">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                            r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                            : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
-                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                            r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                            : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                           }`}>{r.resolvedPct}%</span>
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                            r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                            : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
-                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                            r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                            : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                           }`}>{r.kamScore}</span>
                         </td>
-                        <td className="px-3 py-2.5 text-right">{r.kamFailed > 0 ? <span className="font-bold text-purple-400">{r.kamFailed}</span> : <span className="text-slate-600">0</span>}</td>
-                        <td className="px-3 py-2.5 text-right">{r.cmBreach > 0 ? <span className="font-bold text-orange-400">{r.cmBreach}</span> : <span className="text-slate-600">0</span>}</td>
-                        <td className="px-3 py-2.5 text-right">{r.unjustified > 0 ? <span className="font-bold text-red-400">{r.unjustified}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.kamFailed > 0 ? <span className="font-bold text-purple-600 dark:text-purple-400">{r.kamFailed}</span> : <span className="text-slate-400 dark:text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.cmBreach > 0 ? <span className="font-bold text-orange-600 dark:text-orange-400">{r.cmBreach}</span> : <span className="text-slate-400 dark:text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.unjustified > 0 ? <span className="font-bold text-red-600 dark:text-red-400">{r.unjustified}</span> : <span className="text-slate-400 dark:text-slate-600">0</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1278,44 +1278,44 @@ export default function DashboardPage() {
         {activeTab === "teams" && (
           <div className="animate-slide-in space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-100">Team Performance</h1>
-              <p className="text-sm text-slate-500">KAM-level issue metrics, follow-up SLA compliance, and performance scorecard</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Team Performance</h1>
+              <p className="text-sm text-slate-400 dark:text-slate-500">KAM-level issue metrics, follow-up SLA compliance, and performance scorecard</p>
             </div>
 
             {/* KPIs */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total KAMs</div>
-                <div className="mt-1 text-3xl font-bold text-brand-400">{teamRows.length}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total KAMs</div>
+                <div className="mt-1 text-3xl font-bold text-brand-600 dark:text-brand-400">{teamRows.length}</div>
               </div>
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Issues</div>
-                <div className="mt-1 text-3xl font-bold text-slate-100">{filteredIssues.length}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Issues</div>
+                <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{filteredIssues.length}</div>
               </div>
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SLA Breaches</div>
-                <div className="mt-1 text-3xl font-bold text-red-400">{teamSlaSplit.breached}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">SLA Breaches</div>
+                <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-400">{teamSlaSplit.breached}</div>
               </div>
               <div className="glass rounded-2xl p-5">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unjustified</div>
-                <div className="mt-1 text-3xl font-bold text-orange-400">{teamRows.reduce((s, r) => s + r.unjustified, 0)}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Unjustified</div>
+                <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-400">{teamRows.reduce((s, r) => s + r.unjustified, 0)}</div>
               </div>
             </div>
 
             {/* Needs Attention */}
             {teamNeedsAttention.length > 0 && (
               <div className="glass rounded-2xl border-amber-500/20">
-                <div className="flex items-center gap-2 border-b border-white/5 px-5 py-3">
+                <div className="flex items-center gap-2 border-b border-black/5 dark:border-white/5 px-5 py-3">
                   <span className="text-lg">⚠️</span>
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-amber-400">Needs Attention</h2>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">Needs Attention</h2>
                 </div>
                 <div className="flex flex-wrap gap-2 p-4">
                   {teamNeedsAttention.slice(0, 12).map((r) => (
-                    <span key={r.kamId} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                    <span key={r.kamId} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">
                       {r.kamName}
-                      {r.slaBreached > 0 && <span className="text-red-400">{r.slaBreached} breach</span>}
-                      {r.cmBreach > 0 && <span className="text-orange-400">{r.cmBreach} CM</span>}
-                      {r.kamFailed > 0 && <span className="text-purple-400">{r.kamFailed} KAM</span>}
+                      {r.slaBreached > 0 && <span className="text-red-600 dark:text-red-400">{r.slaBreached} breach</span>}
+                      {r.cmBreach > 0 && <span className="text-orange-600 dark:text-orange-400">{r.cmBreach} CM</span>}
+                      {r.kamFailed > 0 && <span className="text-purple-600 dark:text-purple-400">{r.kamFailed} KAM</span>}
                     </span>
                   ))}
                 </div>
@@ -1325,13 +1325,13 @@ export default function DashboardPage() {
             {/* Charts */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Top 10 KAMs by Volume</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Top 10 KAMs by Volume</h2>
                 <div className="space-y-2">
                   {topTeamsByVolume.map((r) => (
                     <div key={r.kamId} className="flex items-center gap-2">
-                      <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-400" title={r.kamName}>{r.kamName}</div>
+                      <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-400 dark:text-slate-500 dark:text-slate-400" title={r.kamName}>{r.kamName}</div>
                       <div className="flex-1">
-                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                        <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (r.issues / maxTeamVol) * 100)}%` }}>
                             <span className="text-[10px] font-bold text-slate-900">{r.issues}</span>
                           </div>
@@ -1343,13 +1343,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">KAMs with Most SLA Breaches</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAMs with Most SLA Breaches</h2>
                 <div className="space-y-2">
                   {topBreachedTeams.map((r) => (
                     <div key={r.kamId} className="flex items-center gap-2">
-                      <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-400" title={r.kamName}>{r.kamName}</div>
+                      <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-400 dark:text-slate-500 dark:text-slate-400" title={r.kamName}>{r.kamName}</div>
                       <div className="flex-1">
-                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                        <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                           <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-red-600 to-red-400 px-2" style={{ width: `${Math.max(2, (r.slaBreached / maxTeamBreach) * 100)}%` }}>
                             <span className="text-[10px] font-bold text-white">{r.slaBreached}</span>
                           </div>
@@ -1361,13 +1361,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="glass rounded-2xl p-5">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">KAM SLA Split</h2>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAM SLA Split</h2>
                 <div className="flex flex-col items-center gap-4">
                   <Donut met={teamSlaSplit.met} breached={teamSlaSplit.breached} pending={teamSlaSplit.pending} total={teamSlaSplit.total} label="total" />
                   <div className="flex flex-col gap-1 text-xs">
-                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-400">Met: <b className="text-slate-200">{teamSlaSplit.met}</b> ({pct(teamSlaSplit.met, teamSlaSplit.total)}%)</span></div>
-                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500"></span><span className="text-slate-400">Breached: <b className="text-slate-200">{teamSlaSplit.breached}</b> ({pct(teamSlaSplit.breached, teamSlaSplit.total)}%)</span></div>
-                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span className="text-slate-400">Pending: <b className="text-slate-200">{teamSlaSplit.pending}</b> ({pct(teamSlaSplit.pending, teamSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Met: <b className="text-slate-200">{teamSlaSplit.met}</b> ({pct(teamSlaSplit.met, teamSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500"></span><span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Breached: <b className="text-slate-200">{teamSlaSplit.breached}</b> ({pct(teamSlaSplit.breached, teamSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Pending: <b className="text-slate-200">{teamSlaSplit.pending}</b> ({pct(teamSlaSplit.pending, teamSlaSplit.total)}%)</span></div>
                   </div>
                 </div>
               </div>
@@ -1375,57 +1375,57 @@ export default function DashboardPage() {
 
             {/* KAM Scorecard Table */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">KAM Scorecard · {teamRows.length} KAMs</h2>
-                <span className="text-xs text-slate-500">Updated {formatDateTime(new Date().toISOString())}</span>
+              <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAM Scorecard · {teamRows.length} KAMs</h2>
+                <span className="text-xs text-slate-400 dark:text-slate-500">Updated {formatDateTime(new Date().toISOString())}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm glass-table">
                   <thead>
-                    <tr className="border-b border-white/5">
-                      <th className="px-4 py-3 text-left font-semibold text-slate-500">KAM</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">ISSUES</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SLA%</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">AVG FOLLOWUP</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">COMMENT%</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">RESOLVED%</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SCORE</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM FAILED</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">CM BREACH</th>
-                      <th className="px-3 py-3 text-right font-semibold text-slate-500">UNJUSTIFIED</th>
+                    <tr className="border-b border-black/5 dark:border-white/5">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">KAM</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">ISSUES</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM SLA%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">AVG FOLLOWUP</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">COMMENT%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">RESOLVED%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM SCORE</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM FAILED</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">CM BREACH</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">UNJUSTIFIED</th>
                     </tr>
                   </thead>
                   <tbody>
                     {teamRows.map((r) => (
                       <tr key={r.kamId} className="transition">
-                        <td className="px-4 py-2.5 font-medium text-slate-300">{r.kamName}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-slate-100">{r.issues}</td>
+                        <td className="px-4 py-2.5 font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.kamName}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{r.issues}</td>
                         <td className="px-3 py-2.5 text-right">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                            r.kamSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                            : r.kamSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
-                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                            r.kamSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                            : r.kamSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                           }`}>{r.kamSlaPct}%</span>
                         </td>
-                        <td className="px-3 py-2.5 text-right text-slate-400">{r.avgFollowup !== null ? `${r.avgFollowup.toFixed(1)}h` : "—"}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-slate-300">{r.commentPct}%</td>
+                        <td className="px-3 py-2.5 text-right text-slate-400 dark:text-slate-500 dark:text-slate-400">{r.avgFollowup !== null ? `${r.avgFollowup.toFixed(1)}h` : "—"}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.commentPct}%</td>
                         <td className="px-3 py-2.5 text-right">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                            r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                            : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
-                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                            r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                            : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                           }`}>{r.resolvedPct}%</span>
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                            r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                            : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
-                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                            r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                            : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                           }`}>{r.kamScore}</span>
                         </td>
-                        <td className="px-3 py-2.5 text-right">{r.kamFailed > 0 ? <span className="font-bold text-purple-400">{r.kamFailed}</span> : <span className="text-slate-600">0</span>}</td>
-                        <td className="px-3 py-2.5 text-right">{r.cmBreach > 0 ? <span className="font-bold text-orange-400">{r.cmBreach}</span> : <span className="text-slate-600">0</span>}</td>
-                        <td className="px-3 py-2.5 text-right">{r.unjustified > 0 ? <span className="font-bold text-red-400">{r.unjustified}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.kamFailed > 0 ? <span className="font-bold text-purple-600 dark:text-purple-400">{r.kamFailed}</span> : <span className="text-slate-400 dark:text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.cmBreach > 0 ? <span className="font-bold text-orange-600 dark:text-orange-400">{r.cmBreach}</span> : <span className="text-slate-400 dark:text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.unjustified > 0 ? <span className="font-bold text-red-600 dark:text-red-400">{r.unjustified}</span> : <span className="text-slate-400 dark:text-slate-600">0</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1436,7 +1436,7 @@ export default function DashboardPage() {
         )}
 
         {/* Footer */}
-        <div className="mt-6 flex items-center justify-between text-xs text-slate-600">
+        <div className="mt-6 flex items-center justify-between text-xs text-slate-400 dark:text-slate-600">
           <span>CarryBee · Internal use</span>
           <span>{filteredIssues.length} issues · {hubRows.length} hubs · {teamRows.length} KAMs</span>
         </div>
@@ -1446,16 +1446,16 @@ export default function DashboardPage() {
       {justifyTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setJustifyTarget(null)}>
           <div className="glass w-full max-w-md rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 text-lg font-bold text-slate-100">
+            <h2 className="mb-2 text-lg font-bold text-slate-900 dark:text-slate-100">
               {justifyTarget.type === "kam" ? "KAM SLA Breach" : "CM SLA Breach"} — Justification Required
             </h2>
-            <p className="mb-4 text-sm text-slate-400">
+            <p className="mb-4 text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">
               Explain why the SLA was breached. This will allow the action to proceed.
             </p>
             <textarea
               value={justifyText}
               onChange={(e) => setJustifyText(e.target.value)}
-              className="glass-input w-full rounded-xl p-3 text-sm text-slate-200 placeholder:text-slate-600"
+              className="glass-input w-full rounded-xl p-3 text-sm text-slate-200 placeholder:text-slate-400 dark:text-slate-600"
               placeholder="Enter justification..."
               rows={4}
               autoFocus
@@ -1463,7 +1463,7 @@ export default function DashboardPage() {
             <div className="mt-4 flex gap-3">
               <button
                 onClick={() => setJustifyTarget(null)}
-                className="glass-input flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-slate-100"
+                className="glass-input flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
               >
                 Cancel
               </button>

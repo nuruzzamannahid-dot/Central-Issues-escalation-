@@ -245,7 +245,7 @@ export default function TeamsPage() {
     return (
       <div className="min-h-screen dashboard-bg">
         <div className="flex h-screen items-center justify-center">
-          <div className="text-slate-400">Loading Team Performance…</div>
+          <div className="text-slate-400 dark:text-slate-500 dark:text-slate-400">Loading Team Performance…</div>
         </div>
       </div>
     );
@@ -257,7 +257,7 @@ export default function TeamsPage() {
         <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
         <div className="mx-auto max-w-7xl px-4 py-12">
           <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-950/40">
-            <p className="text-red-700 dark:text-red-400">{error}</p>
+            <p className="text-red-700 dark:text-red-600 dark:text-red-400">{error}</p>
           </div>
         </div>
       </div>
@@ -277,8 +277,8 @@ export default function TeamsPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-100">Team Performance</h1>
-              <p className="text-sm text-slate-400">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Team Performance</h1>
+              <p className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">
                 KAM-level issue metrics, follow-up SLA compliance, and performance scorecard
               </p>
             </div>
@@ -286,7 +286,7 @@ export default function TeamsPage() {
               <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-bold text-white">
                 {totalTeams} KAMs
               </span>
-              <span className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+              <span className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 dark:bg-slate-700 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">
                 {totalIssues} issues
               </span>
             </div>
@@ -295,7 +295,7 @@ export default function TeamsPage() {
 
         {/* Filter Bar */}
         <div className="mb-6 flex flex-wrap items-center gap-3 glass rounded-2xl p-3">
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-500">KAM</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAM</span>
           <select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
@@ -310,24 +310,24 @@ export default function TeamsPage() {
         {/* KPI Cards */}
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total KAMs</div>
-            <div className="mt-1 text-3xl font-bold text-slate-100">{totalTeams}</div>
-            <div className="mt-1 text-xs text-slate-400">with issues in filter range</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total KAMs</div>
+            <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{totalTeams}</div>
+            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">with issues in filter range</div>
           </div>
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Issues</div>
-            <div className="mt-1 text-3xl font-bold text-slate-100">{totalIssues}</div>
-            <div className="mt-1 text-xs text-slate-400">in filtered range</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Total Issues</div>
+            <div className="mt-1 text-3xl font-bold text-slate-900 dark:text-slate-100">{totalIssues}</div>
+            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">in filtered range</div>
           </div>
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SLA Breaches</div>
-            <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-400">{totalBreached}</div>
-            <div className="mt-1 text-xs text-slate-400">KAM follow-up SLA breaches</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">SLA Breaches</div>
+            <div className="mt-1 text-3xl font-bold text-red-600 dark:text-red-600 dark:text-red-400">{totalBreached}</div>
+            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">KAM follow-up SLA breaches</div>
           </div>
           <div className="glass rounded-2xl p-5">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unjustified</div>
-            <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-400">{totalUnjustified}</div>
-            <div className="mt-1 text-xs text-slate-400">breaches without justification</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Unjustified</div>
+            <div className="mt-1 text-3xl font-bold text-orange-600 dark:text-orange-600 dark:text-orange-400">{totalUnjustified}</div>
+            <div className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">breaches without justification</div>
           </div>
         </div>
 
@@ -336,7 +336,7 @@ export default function TeamsPage() {
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
             <div className="flex items-center gap-2 border-b border-amber-200 px-5 py-3 dark:border-amber-800">
               <span className="text-lg">⚠️</span>
-              <h2 className="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-600 dark:text-amber-400">
                 Needs Attention
               </h2>
             </div>
@@ -360,15 +360,15 @@ export default function TeamsPage() {
         <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Top 10 KAMs by Volume */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Top 10 KAMs by Volume</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Top 10 KAMs by Volume</h2>
             <div className="space-y-2">
               {topTeamsByVolume.map((r) => (
                 <div key={r.kamId} className="flex items-center gap-2">
-                  <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-300" title={r.kamName}>
+                  <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300" title={r.kamName}>
                     {r.kamName}
                   </div>
                   <div className="flex-1">
-                    <div className="h-5 overflow-hidden rounded bg-white/5">
+                    <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                       <div
                         className="flex h-full items-center justify-end rounded bg-brand px-2 transition-all"
                         style={{ width: `${Math.max(2, (r.issues / maxVolume) * 100)}%` }}
@@ -380,22 +380,22 @@ export default function TeamsPage() {
                 </div>
               ))}
               {topTeamsByVolume.length === 0 && (
-                <div className="text-sm text-slate-400">No data</div>
+                <div className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">No data</div>
               )}
             </div>
           </div>
 
           {/* KAMs with Most SLA Breaches */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">KAMs with Most SLA Breaches</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAMs with Most SLA Breaches</h2>
             <div className="space-y-2">
               {topBreachedTeams.map((r) => (
                 <div key={r.kamId} className="flex items-center gap-2">
-                  <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-300" title={r.kamName}>
+                  <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300" title={r.kamName}>
                     {r.kamName}
                   </div>
                   <div className="flex-1">
-                    <div className="h-5 overflow-hidden rounded bg-white/5">
+                    <div className="h-5 overflow-hidden rounded bg-black/5 dark:bg-white/5">
                       <div
                         className="flex h-full items-center justify-end rounded bg-red-500 px-2 transition-all"
                         style={{ width: `${Math.max(2, (r.slaBreached / maxBreach) * 100)}%` }}
@@ -407,14 +407,14 @@ export default function TeamsPage() {
                 </div>
               ))}
               {topBreachedTeams.length === 0 && (
-                <div className="text-sm text-slate-400">No breaches 🎉</div>
+                <div className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">No breaches 🎉</div>
               )}
             </div>
           </div>
 
           {/* KAM SLA Split Donut */}
           <div className="glass rounded-2xl p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">KAM SLA Split</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">KAM SLA Split</h2>
             <div className="flex flex-col items-center gap-4">
               <svg viewBox="0 0 120 120" className="h-40 w-40">
                 {/* Background circle */}
@@ -450,15 +450,15 @@ export default function TeamsPage() {
               <div className="flex flex-col gap-1 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                  <span className="text-slate-600 dark:text-slate-300">Met: <b>{slaSplit.met}</b> ({pct(slaSplit.met, slaSplit.total)}%)</span>
+                  <span className="text-slate-400 dark:text-slate-600 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">Met: <b>{slaSplit.met}</b> ({pct(slaSplit.met, slaSplit.total)}%)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                  <span className="text-slate-600 dark:text-slate-300">Breached: <b>{slaSplit.breached}</b> ({pct(slaSplit.breached, slaSplit.total)}%)</span>
+                  <span className="text-slate-400 dark:text-slate-600 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">Breached: <b>{slaSplit.breached}</b> ({pct(slaSplit.breached, slaSplit.total)}%)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                  <span className="text-slate-600 dark:text-slate-300">Pending: <b>{slaSplit.pending}</b> ({pct(slaSplit.pending, slaSplit.total)}%)</span>
+                  <span className="text-slate-400 dark:text-slate-600 dark:text-slate-600 dark:text-slate-300 dark:text-slate-300">Pending: <b>{slaSplit.pending}</b> ({pct(slaSplit.pending, slaSplit.total)}%)</span>
                 </div>
               </div>
             </div>
@@ -468,11 +468,11 @@ export default function TeamsPage() {
         {/* KAM Scorecard Table */}
         <div className="glass rounded-2xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-700">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               KAM Scorecard · {teamRows.length} KAMs
             </h2>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
                 Updated {formatDateTime(new Date().toISOString())}
               </span>
             </div>
@@ -480,74 +480,74 @@ export default function TeamsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/5">
-                  <th className="px-4 py-3 text-left font-semibold text-slate-500">KAM</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">ISSUES</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SLA%</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">AVG FOLLOWUP</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">COMMENT%</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">RESOLVED%</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SCORE</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM FAILED</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">CM BREACH</th>
-                  <th className="px-3 py-3 text-right font-semibold text-slate-500">UNJUSTIFIED</th>
+                <tr className="border-b border-black/5 dark:border-white/5">
+                  <th className="px-4 py-3 text-left font-semibold text-slate-400 dark:text-slate-500">KAM</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">ISSUES</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM SLA%</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">AVG FOLLOWUP</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">COMMENT%</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">RESOLVED%</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM SCORE</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">KAM FAILED</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">CM BREACH</th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-400 dark:text-slate-500">UNJUSTIFIED</th>
                 </tr>
               </thead>
               <tbody>
                 {teamRows.map((r) => (
-                  <tr key={r.kamId} className="border-b border-white/5 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
-                    <td className="px-4 py-2.5 font-medium text-slate-300">{r.kamName}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-100">{r.issues}</td>
+                  <tr key={r.kamId} className="border-b border-black/5 dark:border-white/5 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-2.5 font-medium text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.kamName}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100">{r.issues}</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                        r.kamSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                        : r.kamSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
-                        : "bg-red-500/15 text-red-400 ring-red-500/20"
+                        r.kamSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                        : r.kamSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-600 dark:text-yellow-400 dark:ring-yellow-800"
+                        : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                       }`}>
                         {r.kamSlaPct}%
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">
+                    <td className="px-3 py-2.5 text-right text-slate-400 dark:text-slate-500 dark:text-slate-400">
                       {r.avgFollowup !== null ? `${r.avgFollowup.toFixed(1)}h` : "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-300">{r.commentPct}%</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-slate-600 dark:text-slate-300 dark:text-slate-300">{r.commentPct}%</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                        r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                        : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
-                        : "bg-red-500/15 text-red-400 ring-red-500/20"
+                        r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                        : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-600 dark:text-yellow-400 dark:ring-yellow-800"
+                        : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                       }`}>
                         {r.resolvedPct}%
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
-                        r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
-                        : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-400 dark:ring-yellow-800"
-                        : "bg-red-500/15 text-red-400 ring-red-500/20"
+                        r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20"
+                        : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20 dark:bg-yellow-900/30 dark:text-yellow-600 dark:text-yellow-400 dark:ring-yellow-800"
+                        : "bg-red-500/15 text-red-600 dark:text-red-400 ring-red-500/20"
                       }`}>
                         {r.kamScore}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       {r.kamFailed > 0 ? (
-                        <span className="font-bold text-purple-600 dark:text-purple-400">{r.kamFailed}</span>
+                        <span className="font-bold text-purple-600 dark:text-purple-600 dark:text-purple-400">{r.kamFailed}</span>
                       ) : (
-                        <span className="text-slate-400">0</span>
+                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       {r.cmBreach > 0 ? (
-                        <span className="font-bold text-orange-600 dark:text-orange-400">{r.cmBreach}</span>
+                        <span className="font-bold text-orange-600 dark:text-orange-600 dark:text-orange-400">{r.cmBreach}</span>
                       ) : (
-                        <span className="text-slate-400">0</span>
+                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">0</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       {r.unjustified > 0 ? (
-                        <span className="font-bold text-red-600 dark:text-red-400">{r.unjustified}</span>
+                        <span className="font-bold text-red-600 dark:text-red-600 dark:text-red-400">{r.unjustified}</span>
                       ) : (
-                        <span className="text-slate-400">0</span>
+                        <span className="text-slate-400 dark:text-slate-500 dark:text-slate-400">0</span>
                       )}
                     </td>
                   </tr>
@@ -558,7 +558,7 @@ export default function TeamsPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+        <div className="mt-4 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
           <span>CarryBee · Internal use</span>
           <span>{filteredIssues.length} issues from {teamRows.length} KAMs</span>
         </div>
