@@ -37,7 +37,7 @@ export default function DashboardPage() {
   const [fCategory, setFCategory] = useState("");
 
   // re-render tick — keeps SLA alarms accurate (updates every minute)
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 60000);
     return () => clearInterval(t);
