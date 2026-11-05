@@ -30,7 +30,7 @@ export default function Nav({
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <img src="/logo.jpg" alt="Logo" className="h-10 w-10 rounded-lg object-cover" />
+          <img src="/logo.png" alt="Logo" className="h-7 max-w-[200px] object-contain" />
           <span className="text-[15px] font-bold leading-tight text-slate-900 dark:text-slate-100">
             KAM Issue
             <br />
