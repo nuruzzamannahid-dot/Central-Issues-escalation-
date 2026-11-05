@@ -161,7 +161,7 @@ export default function DashboardPage() {
     setIssues((prev) =>
       prev.map((i) =>
         i.id === id
-          ? { ...i, status: status as Issue["status"], ops_status: status, ops_status_at: new Date().toISOString() }
+          ? { ...i, status: status as Issue["status"], ops_status: status, ops_status_at: new Date().toISOString() } as Issue
           : i
       )
     );
