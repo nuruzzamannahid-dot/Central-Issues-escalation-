@@ -16,6 +16,12 @@ import {
   REMARK2_WINDOW_HOURS,
   getUserAccess,
   getKamIdsForTeams,
+  getCmActionSlaState,
+  CM_ACTIONS,
+  CM_ACTION_STYLE,
+  CM_JUSTIFICATION_MAX,
+  canUseCmAction,
+  canPerformCmAction,
   type Issue,
 } from "@/lib/supabase";
 
@@ -32,6 +38,8 @@ export default function IssueDetailPage() {
   const [created, setCreated] = useState(false);
   const [issueId, setIssueId] = useState("");
   const [canAccess, setCanAccess] = useState(true);
+  const [ibKamIds, setIbKamIds] = useState<string[]>([]);
+  const [cmJustification, setCmJustification] = useState("");
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -60,6 +68,10 @@ export default function IssueDetailPage() {
         return;
       }
       setAccess({ role: acc.role, teamName: acc.teamName, name: acc.name });
+
+      // Fetch IB KAM ids for CM Action section
+      const ibIds = await getKamIdsForTeams(["IB"]);
+      if (mounted) setIbKamIds(ibIds);
 
       if (issueId) {
         const { data, error: err } = await supabase
@@ -121,6 +133,56 @@ export default function IssueDetailPage() {
       ops_status_at: new Date().toISOString(),
       resolution_note: resolutionNote.trim() || null,
     });
+  }
+
+  async function setCmAction(id: string, action: string) {
+    if (!issue) return;
+    setSaving(true);
+    const { error: err } = await supabase
+      .from("issues")
+      .update({
+        cm_action: action as Issue["cm_action"],
+        cm_action_at: new Date().toISOString(),
+        cm_picked_by: user?.email ?? null,
+      })
+      .eq("id", id);
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setIssue({
+      ...issue,
+      cm_action: action as Issue["cm_action"],
+      cm_action_at: new Date().toISOString(),
+      cm_picked_by: user?.email ?? null,
+    });
+  }
+
+  async function giveJustification(id: string, text: string) {
+    if (!issue) return;
+    setSaving(true);
+    const newCount = (issue.cm_justification_count ?? 0) + 1;
+    const { error: err } = await supabase
+      .from("issues")
+      .update({
+        cm_justification: text,
+        cm_justification_count: newCount,
+        cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
+      })
+      .eq("id", id);
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setIssue({
+      ...issue,
+      cm_justification: text,
+      cm_justification_count: newCount,
+      cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
+    });
+    setCmJustification("");
   }
 
   async function removeIssue() {
@@ -384,6 +446,152 @@ export default function IssueDetailPage() {
                 {saving ? "Saving…" : "Save Update"}
               </button>
             </section>
+
+            {/* CM Action — IB issues only */}
+            {access && ibKamIds.includes(issue.kam_id) && canUseCmAction(access.role, access.teamName) && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                    CM Action
+                  </h2>
+                  {issue.cm_action && (
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${CM_ACTION_STYLE[issue.cm_action] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}>
+                      {issue.cm_action}
+                    </span>
+                  )}
+                </div>
+
+                {/* SLA badge */}
+                {(() => {
+                  const s = getCmActionSlaState(issue);
+                  if (s.level === "ok" && !s.label) {
+                    return null;
+                  }
+                  return (
+                    <div
+                      className={`mb-4 flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold ring-1 ring-inset ${
+                        s.level === "breach" ? "bg-red-50 text-red-700 ring-red-200" : "bg-amber-50 text-amber-700 ring-amber-200"
+                      }`}
+                    >
+                      ⚠ {s.label}
+                      {s.deadline && (
+                        <span className="ml-auto font-normal text-slate-500">
+                          Deadline {formatDateTime(s.deadline.toISOString())}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Blocked notice */}
+                {issue.cm_blocked && (
+                  <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+                    🔒 BLOCKED — Justification limit reached ({issue.cm_justification_count}/{CM_JUSTIFICATION_MAX}). Only Lead can work with this issue.
+                  </div>
+                )}
+
+                {/* Current justification */}
+                {issue.cm_justification && (
+                  <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-600">
+                      Justification ({issue.cm_justification_count}/{CM_JUSTIFICATION_MAX})
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{issue.cm_justification}</p>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                {canPerformCmAction(access.role, access.teamName, issue.cm_blocked) && (
+                  <div className="flex flex-wrap gap-2">
+                    {!issue.cm_action && (
+                      <button
+                        onClick={() => setCmAction(issue.id, "Pickup")}
+                        disabled={saving}
+                        className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
+                      >
+                        📦 Pick Up
+                      </button>
+                    )}
+                    {issue.cm_action === "Pickup" && (
+                      <button
+                        onClick={() => setCmAction(issue.id, "1st Followup")}
+                        disabled={saving}
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+                      >
+                        1st Followup →
+                      </button>
+                    )}
+                    {issue.cm_action === "1st Followup" && (
+                      <button
+                        onClick={() => setCmAction(issue.id, "2nd Followup")}
+                        disabled={saving}
+                        className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
+                      >
+                        2nd Followup →
+                      </button>
+                    )}
+                    {issue.cm_action === "2nd Followup" && (
+                      <button
+                        onClick={() => setCmAction(issue.id, "3rd Followup")}
+                        disabled={saving}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        3rd Followup →
+                      </button>
+                    )}
+                    {!issue.cm_action && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
+                      <button
+                        onClick={() => setCmJustification(cmJustification)}
+                        className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                      >
+                        📝 Give Justification
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Justification textarea */}
+                {cmJustification && !issue.cm_blocked && (issue.cm_justification_count ?? 0) < CM_JUSTIFICATION_MAX && (
+                  <div className="mt-4">
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Justification for not picking up
+                    </label>
+                    <textarea
+                      value={cmJustification}
+                      onChange={(e) => setCmJustification(e.target.value)}
+                      rows={3}
+                      placeholder="Explain why pickup is not possible…"
+                      className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => giveJustification(issue.id, cmJustification.trim())}
+                        disabled={saving || !cmJustification.trim()}
+                        className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                      >
+                        Submit Justification
+                      </button>
+                      <button
+                        onClick={() => setCmJustification("")}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                      <span className="ml-auto text-[11px] text-slate-400">
+                        {(issue.cm_justification_count ?? 0)}/{CM_JUSTIFICATION_MAX} used
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Pickup SLA info */}
+                {!issue.cm_action && !issue.cm_blocked && (
+                  <div className="mt-4 rounded-lg bg-slate-50 px-4 py-2.5 text-[11px] text-slate-500">
+                    Pickup SLA: 20 minutes from escalation · If no pickup, give a justification (max {CM_JUSTIFICATION_MAX} times, then blocked for members).
+                  </div>
+                )}
+              </section>
+            )}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
