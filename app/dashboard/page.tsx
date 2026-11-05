@@ -7,9 +7,13 @@ import Nav from "@/components/Nav";
 import { BarRow, PriorityBadge, StatusBadge } from "@/components/ui";
 import {
   formatDate,
+  formatDateTime,
   supabase,
   STATUSES,
   PRIORITIES,
+  OPS_STATUS_STYLE,
+  getSlaState,
+  SLA_STYLE,
   type Issue,
 } from "@/lib/supabase";
 
@@ -31,6 +35,13 @@ export default function DashboardPage() {
   const [fZone, setFZone] = useState("");
   const [fHub, setFHub] = useState("");
   const [fCategory, setFCategory] = useState("");
+
+  // re-render tick — keeps SLA alarms accurate (updates every minute)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   // reference data
   const [zones, setZones] = useState<{ code: string; name: string }[]>([]);
@@ -93,13 +104,33 @@ export default function DashboardPage() {
     const open = issues.filter((i) => i.status === "Open").length;
     const inProgress = issues.filter((i) => i.status === "In Progress").length;
     const resolved = issues.filter(
-      (i) => i.status === "Resolved" || i.status === "Closed"
+      (i) =>
+        i.status === "Resolved" ||
+        i.status === "Closed" ||
+        i.status === "Solved"
     ).length;
     const critical = issues.filter(
-      (i) => i.priority === "Critical" && i.status !== "Resolved" && i.status !== "Closed"
+      (i) =>
+        i.priority === "Critical" &&
+        i.status !== "Resolved" &&
+        i.status !== "Closed" &&
+        i.status !== "Solved"
     ).length;
     return { total, open, inProgress, resolved, critical };
   }, [issues]);
+
+  // SLA alarm counts — recomputed on every tick (every 60s)
+  const slaCounts = useMemo(() => {
+    const now = new Date();
+    let breach = 0;
+    let critical = 0;
+    issues.forEach((i) => {
+      const s = getSlaState(i, now);
+      if (s.level === "breach") breach++;
+      if (s.level === "critical") critical++;
+    });
+    return { breach, critical };
+  }, [issues, tick]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -120,14 +151,19 @@ export default function DashboardPage() {
 
   async function changeStatus(id: string, status: string) {
     setUpdatingId(id);
+    // OPS status and KAM status are synced — one status for the issue.
     const { error } = await supabase
       .from("issues")
-      .update({ status })
+      .update({ status, ops_status: status, ops_status_at: new Date().toISOString() })
       .eq("id", id);
     setUpdatingId(null);
     if (error) setError(error.message);
     setIssues((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, status: status as Issue["status"] } : i))
+      prev.map((i) =>
+        i.id === id
+          ? { ...i, status: status as Issue["status"], ops_status: status, ops_status_at: new Date().toISOString() }
+          : i
+      )
     );
   }
 
@@ -188,6 +224,8 @@ export default function DashboardPage() {
           <StatCard label="In Progress" value={stats.inProgress} tone="blue" />
           <StatCard label="Resolved / Closed" value={stats.resolved} tone="emerald" />
           <StatCard label="Critical (Active)" value={stats.critical} tone="red" />
+          <StatCard label="SLA Breach (1st remarks)" value={slaCounts.breach} tone="amber" />
+          <StatCard label="SLA Critical (2nd remarks)" value={slaCounts.critical} tone="red" />
         </div>
 
         {/* Charts */}
@@ -349,10 +387,10 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-4 py-3">
                       <select
-                        value={issue.status}
+                        value={issue.ops_status ?? issue.status}
                         disabled={updatingId === issue.id}
                         onChange={(e) => changeStatus(issue.id, e.target.value)}
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold outline-none ring-1 ring-inset transition disabled:opacity-60 ${STATUS_CLASS[issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold outline-none ring-1 ring-inset transition disabled:opacity-60 ${STATUS_CLASS[issue.ops_status ?? issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
                       >
                         {STATUSES.map((s) => (
                           <option key={s} value={s} className="bg-white">
@@ -374,6 +412,97 @@ export default function DashboardPage() {
         <p className="mt-4 text-xs text-slate-400">
           Showing {filtered.length} of {issues.length} issues · Each KAM only sees their own issues (row-level security).
         </p>
+
+        {/* SLA alarm banner */}
+        {(slaCounts.breach > 0 || slaCounts.critical > 0) && (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            ⚠ SLA alarm — {slaCounts.breach} issue(s) breached SLA (1st remarks due within 2h of escalation), {slaCounts.critical} critical (2nd remarks due within 1h of the 1st remarks).
+          </div>
+        )}
+
+        {/* OPS part — entered by OPS staff in the Google Sheet */}
+        <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                Operations (OPS) Follow-up
+              </h2>
+              <span className="text-[11px] text-slate-400">
+                Edited in Google Sheet “Central Issues Escalation” · Status synced with KAM status · SLA: 1st remarks in 2h, 2nd remarks in 1h
+              </span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3">Reference</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">SLA</th>
+                  <th className="px-4 py-3">Ops Remark 1</th>
+                  <th className="px-4 py-3">Ops Remark 2</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
+                      Loading…
+                    </td>
+                  </tr>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
+                      No issues match your filters.
+                    </td>
+                  </tr>
+                )}
+                {filtered.map((issue) => (
+                  <tr key={issue.id} className="transition hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/issues?id=${issue.id}`}
+                        className="font-mono text-xs font-semibold text-brand hover:underline"
+                      >
+                        {issue.reference_no}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+                      >
+                        {issue.ops_status ?? issue.status ?? "Open"}
+                      </span>
+                      <div className="mt-1 text-[11px] text-slate-400">
+                        {issue.ops_status_at ? `Set ${formatDateTime(issue.ops_status_at)}` : "—"}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <SlaBadge issue={issue} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="whitespace-pre-wrap text-xs text-slate-700">
+                        {issue.ops_remark1 || "—"}
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-400">
+                        {issue.ops_remark1_at ? formatDateTime(issue.ops_remark1_at) : "—"}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="whitespace-pre-wrap text-xs text-slate-700">
+                        {issue.ops_remark2 || "—"}
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-400">
+                        {issue.ops_remark2_at ? formatDateTime(issue.ops_remark2_at) : "—"}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
     </>
   );
@@ -382,10 +511,32 @@ export default function DashboardPage() {
 const STATUS_CLASS: Record<string, string> = {
   Open: "bg-amber-100 text-amber-800 ring-amber-200",
   "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
+  Solved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   Resolved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
   Closed: "bg-slate-200 text-slate-700 ring-slate-300",
   "Re-opened": "bg-red-100 text-red-800 ring-red-200",
 };
+
+function SlaBadge({ issue }: { issue: Issue }) {
+  const s = getSlaState(issue);
+  if (s.level === "ok") {
+    return <span className="text-[11px] text-slate-400">—</span>;
+  }
+  return (
+    <div>
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${SLA_STYLE[s.level]}`}
+      >
+        ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
+      </span>
+      {s.deadline && (
+        <div className="mt-1 text-[11px] text-slate-400">
+          Deadline {formatDateTime(s.deadline.toISOString())}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatCard({
   label,

@@ -5,7 +5,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
 import { PriorityBadge, StatusBadge } from "@/components/ui";
-import { formatDateTime, supabase, STATUSES, type Issue } from "@/lib/supabase";
+import {
+  formatDateTime,
+  supabase,
+  STATUSES,
+  OPS_STATUS_STYLE,
+  getSlaState,
+  SLA_STYLE,
+  REMARK1_WINDOW_HOURS,
+  REMARK2_WINDOW_HOURS,
+  type Issue,
+} from "@/lib/supabase";
 
 export default function IssueDetailPage() {
   const router = useRouter();
@@ -68,9 +78,15 @@ export default function IssueDetailPage() {
   async function saveUpdate() {
     if (!issue) return;
     setSaving(true);
+    // OPS status and KAM status are synced — one status for the issue.
     const { error: err } = await supabase
       .from("issues")
-      .update({ status: newStatus, resolution_note: resolutionNote.trim() || null })
+      .update({
+        status: newStatus,
+        ops_status: newStatus,
+        ops_status_at: new Date().toISOString(),
+        resolution_note: resolutionNote.trim() || null,
+      })
       .eq("id", issue.id);
     setSaving(false);
     if (err) {
@@ -80,6 +96,8 @@ export default function IssueDetailPage() {
     setIssue({
       ...issue,
       status: newStatus as Issue["status"],
+      ops_status: newStatus as Issue["ops_status"],
+      ops_status_at: new Date().toISOString(),
       resolution_note: resolutionNote.trim() || null,
     });
   }
@@ -224,6 +242,83 @@ export default function IssueDetailPage() {
                 </p>
               </section>
             )}
+
+            {/* OPS follow-up — entered by OPS staff in the Google Sheet */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                  OPS Follow-up
+                </h2>
+                <span className="text-[11px] text-slate-400">
+                  Entered in Google Sheet “Central Issues Escalation”
+                </span>
+              </div>
+
+              <div className="mb-5 flex items-center gap-3 rounded-lg bg-slate-50 px-4 py-3">
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
+                >
+                  {issue.ops_status ?? issue.status ?? "Open"}
+                </span>
+                <span className="text-xs text-slate-500">
+                  Status (synced with KAM status) ·{" "}
+                  {issue.ops_status_at
+                    ? `set ${formatDateTime(issue.ops_status_at)}`
+                    : "not set yet — always Open until OPS selects a status"}
+                </span>
+              </div>
+
+              {(() => {
+                const s = getSlaState(issue);
+                if (s.level === "ok") {
+                  return (
+                    <div className="mb-5 flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-700">
+                      ✓ SLA on track — 1st remarks within {REMARK1_WINDOW_HOURS}h of escalation, 2nd remarks within {REMARK2_WINDOW_HOURS}h of the 1st.
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    className={`mb-5 flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold ring-1 ring-inset ${SLA_STYLE[s.level]}`}
+                  >
+                    ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"} —{" "}
+                    {s.level === "critical"
+                      ? `2nd remarks due within ${REMARK2_WINDOW_HOURS}h of the 1st remarks`
+                      : `1st remarks due within ${REMARK1_WINDOW_HOURS}h of escalation`}
+                    {s.deadline && (
+                      <span className="ml-auto font-normal">
+                        Deadline {formatDateTime(s.deadline.toISOString())}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Ops Remark 1
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                    {issue.ops_remark1 || "—"}
+                  </p>
+                  <div className="mt-1 text-[11px] text-slate-400">
+                    {issue.ops_remark1_at ? `Added ${formatDateTime(issue.ops_remark1_at)}` : "Not added"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Ops Remark 2
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                    {issue.ops_remark2 || "—"}
+                  </p>
+                  <div className="mt-1 text-[11px] text-slate-400">
+                    {issue.ops_remark2_at ? `Added ${formatDateTime(issue.ops_remark2_at)}` : "Not added"}
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
 
           {/* Update panel */}
