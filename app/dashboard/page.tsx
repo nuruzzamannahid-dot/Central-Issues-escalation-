@@ -1,10 +1,9 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 import Nav from "@/components/Nav";
-import { BarRow, PriorityBadge, StatusBadge } from "@/components/ui";
 import {
   formatDate,
   formatDateTime,
@@ -31,6 +30,23 @@ import {
 
 type Kam = { id: string; full_name: string; email: string; phone: string | null };
 
+type TabKey = "overview" | "analytics" | "hubs" | "teams";
+
+const TABS: { key: TabKey; label: string; icon: string }[] = [
+  { key: "overview", label: "Overview", icon: "📊" },
+  { key: "analytics", label: "Analytics", icon: "📈" },
+  { key: "hubs", label: "Hub Performance", icon: "🏪" },
+  { key: "teams", label: "Team Performance", icon: "👥" },
+];
+
+const RESOLVED_STATUSES = ["Resolved", "Solved", "Closed"];
+const HUB_SLA_MINUTES = 20;
+const KAM_SLA_HOURS = 2;
+
+function pct(num: number, den: number) {
+  return den === 0 ? 0 : Math.round((num / den) * 100);
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string } | null>(null);
@@ -43,39 +59,26 @@ export default function DashboardPage() {
   } | null>(null);
   const [kam, setKam] = useState<Kam | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [kams, setKams] = useState<Kam[]>([]);
+  const [categories, setCategories] = useState<{ name: string; subcategory: string; priority: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  // CM Action state
-  const [ibKamIds, setIbKamIds] = useState<string[]>([]);
-  const [cmJustification, setCmJustification] = useState("");
-  const [cmJustificationId, setCmJustificationId] = useState<string | null>(null);
-  const [cmUpdatingId, setCmUpdatingId] = useState<string | null>(null);
-  // KAM Action state
-  const [kamJustification, setKamJustification] = useState("");
-  const [kamJustificationId, setKamJustificationId] = useState<string | null>(null);
-  const [kamUpdatingId, setKamUpdatingId] = useState<string | null>(null);
-
-  // filters
-  const [search, setSearch] = useState("");
-  const [fStatus, setFStatus] = useState("");
-  const [fPriority, setFPriority] = useState("");
-  const [fZone, setFZone] = useState("");
-  const [fHub, setFHub] = useState("");
-  const [fCategory, setFCategory] = useState("");
-
-  // re-render tick — keeps SLA alarms accurate (updates every minute)
   const [tick, setTick] = useState(0);
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [ibKamIds, setIbKamIds] = useState<string[]>([]);
+  // Filters
+  const [zoneFilter, setZoneFilter] = useState("All");
+  const [hubFilter, setHubFilter] = useState("All");
+  const [teamFilter, setTeamFilter] = useState("All");
+  // Justification modal
+  const [justifyTarget, setJustifyTarget] = useState<{ type: "kam" | "cm"; issueId: string } | null>(null);
+  const [justifyText, setJustifyText] = useState("");
+
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 60000);
     return () => clearInterval(t);
   }, []);
-
-  // reference data
-  const [zones, setZones] = useState<{ code: string; name: string }[]>([]);
-  const [hubs, setHubs] = useState<{ zone_code: string; name: string }[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [catPriorityMap, setCatPriorityMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -83,17 +86,16 @@ export default function DashboardPage() {
       const { data: session } = await supabase.auth.getUser();
       if (!mounted) return;
       if (!session.user) {
-        router.replace("/login");
+        window.location.href = "/login";
         return;
       }
       const email = session.user.email ?? "";
       setUser({ email });
 
-      // Get RBAC access profile (honors the access chosen at login)
       const savedRole = sessionStorage.getItem("kam_access_role");
       const acc = await getUserAccess(email, savedRole ?? undefined);
       if (!acc) {
-        setError("Your email is not in the team member list. Contact your administrator.");
+        setError("Your email is not in the team member list.");
         setLoading(false);
         return;
       }
@@ -105,1297 +107,1360 @@ export default function DashboardPage() {
         canEscalate: acc.canEscalate,
       });
 
-      // Get KAM profile (optional — team members may not have a kams row yet)
       const kamRes = await supabase
         .from("kams")
         .select("id,full_name,email,phone")
         .eq("email", email)
         .maybeSingle();
+      setKam(kamRes.data ?? null);
 
-      // Fetch all issues, then filter by accessible teams
-      const [issueRes, zoneRes, hubRes, catRes] = await Promise.all([
-        supabase.from("issues").select("*").order("created_at", { ascending: false }).limit(1000),
-        supabase.from("zones").select("code,name").order("code"),
-        supabase.from("hubs").select("zone_code,name").order("name"),
+      const [issueRes, catRes] = await Promise.all([
+        supabase.from("issues").select("*").order("created_at", { ascending: false }).limit(2000),
         supabase.from("categories").select("name,subcategory,priority"),
       ]);
 
       if (!mounted) return;
-      if (issueRes.error) setError(issueRes.error.message);
+      setIssues(issueRes.data ?? []);
+      setCategories(catRes.data ?? []);
 
-      // Filter issues: get KAM ids for accessible teams
-      const kamIds = await getKamIdsForTeams(acc.accessibleTeams);
-      const allIssues = (issueRes.data ?? []) as Issue[];
-      const visibleIssues = kamIds.length > 0
-        ? allIssues.filter((i) => kamIds.includes(i.kam_id))
-        : [];
+      // Fetch all KAMs for team performance
+      const allKamRes = await supabase.from("kams").select("id,full_name,email,phone");
+      if (mounted) setKams(allKamRes.data ?? []);
 
-      setKam(kamRes.data ?? null);
-      setIssues(visibleIssues);
+      // IB KAM IDs for CM Action
+      if (acc.teamName === "CM" || acc.role === "Super Admin" || acc.role === "Team Lead") {
+        const ids = await getKamIdsForTeams(["IB"]);
+        if (mounted) setIbKamIds(ids);
+      }
 
-      // Fetch IB KAM ids for the CM Action section
-      const ibIds = await getKamIdsForTeams(["IB"]);
-      if (mounted) setIbKamIds(ibIds);
-      setZones(zoneRes.data ?? []);
-      setHubs(hubRes.data ?? []);
-      const catData = catRes.data ?? [];
-      setCategories(Array.from(new Set(catData.map((c) => c.name))).sort());
-      const pMap: Record<string, string> = {};
-      catData.forEach((c) => {
-        const key = `${c.name} → ${c.subcategory}`;
-        pMap[key] = c.priority ?? "Medium";
-      });
-      setCatPriorityMap(pMap);
       setLoading(false);
     })();
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [tick]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+  const catPriorityMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach((c) => {
+      map[`${c.name} → ${c.subcategory}`] = c.priority ?? "Medium";
+    });
+    return map;
+  }, [categories]);
+
+  const zones = useMemo(() => {
+    const z = new Set(issues.map((i) => i.zone).filter(Boolean) as string[]);
+    return ["All", ...Array.from(z).sort()];
+  }, [issues]);
+
+  const hubs = useMemo(() => {
+    const h = new Set(issues.map((i) => i.hub).filter(Boolean) as string[]);
+    return ["All", ...Array.from(h).sort()];
+  }, [issues]);
+
+  const teamNames = useMemo(() => {
+    const names = new Set(kams.map((k) => k.full_name).filter(Boolean));
+    return ["All", ...Array.from(names).sort()];
+  }, [kams]);
+
+  const filteredIssues = useMemo(() => {
     return issues.filter((i) => {
-      if (fStatus && i.status !== fStatus) return false;
-      if (fPriority && i.priority !== fPriority) return false;
-      if (fZone && i.zone !== fZone) return false;
-      if (fHub && i.hub !== fHub) return false;
-      if (fCategory && i.category !== fCategory) return false;
-      if (q) {
-        const hay = `${i.reference_no} ${i.merchant_name} ${i.parcel_id ?? ""} ${i.hub ?? ""}`.toLowerCase();
-        if (!hay.includes(q)) return false;
+      if (zoneFilter !== "All" && i.zone !== zoneFilter) return false;
+      if (hubFilter !== "All" && i.hub !== hubFilter) return false;
+      if (teamFilter !== "All") {
+        const k = kams.find((k) => k.id === i.kam_id);
+        if (k?.full_name !== teamFilter) return false;
       }
       return true;
     });
-  }, [issues, search, fStatus, fPriority, fZone, fHub, fCategory]);
+  }, [issues, zoneFilter, hubFilter, teamFilter, kams]);
 
-  const stats = useMemo(() => {
-    const total = issues.length;
-    const open = issues.filter((i) => i.status === "Open").length;
-    const inProgress = issues.filter((i) => i.status === "In Progress").length;
-    const resolved = issues.filter(
-      (i) =>
-        i.status === "Resolved" ||
-        i.status === "Closed" ||
-        i.status === "Solved"
-    ).length;
-    const critical = issues.filter(
-      (i) =>
-        i.priority === "Critical" &&
-        i.status !== "Resolved" &&
-        i.status !== "Closed" &&
-        i.status !== "Solved"
-    ).length;
-    return { total, open, inProgress, resolved, critical };
-  }, [issues]);
+  // ===== Overview KPIs =====
+  const kpis = useMemo(() => {
+    const open = filteredIssues.filter((i) => i.status === "Open").length;
+    const inProgress = filteredIssues.filter((i) => i.status === "In Progress").length;
+    const resolved = filteredIssues.filter((i) => RESOLVED_STATUSES.includes(i.status)).length;
+    const notRemarks = filteredIssues.filter((i) => i.status === "Not Remarks").length;
+    const improper = filteredIssues.filter((i) => i.status === "Improper").length;
+    return { total: filteredIssues.length, open, inProgress, resolved, notRemarks, improper };
+  }, [filteredIssues]);
 
-  // SLA alarm counts — recomputed on every tick (every 60s)
-  const slaCounts = useMemo(() => {
-    const now = new Date();
-    let breach = 0;
-    let critical = 0;
-    issues.forEach((i) => {
-      const s = getSlaState(i, now);
-      if (s.level === "breach") breach++;
-      if (s.level === "critical") critical++;
-    });
-    return { breach, critical };
-  }, [issues, tick]);
+  // ===== SLA Alerts =====
+  const slaAlerts = useMemo(() => {
+    let remark1Breach = 0, remark2Critical = 0, cmBreach = 0, kamBreach = 0;
+    for (const i of filteredIssues) {
+      const s = getSlaState(i);
+      if (s.level === "breach" || s.level === "critical") {
+        if (i.ops_remark1_at === null) remark1Breach++;
+      }
+      if (i.ops_remark2_at === null && i.ops_remark1_at !== null) remark2Critical++;
+      const cm = getCmActionSlaState(i);
+      if (cm.level === "breach" || cm.level === "critical") cmBreach++;
+      const km = getKamActionSlaState(i);
+      if (km.level === "breach" || km.level === "critical") kamBreach++;
+    }
+    return { remark1Breach, remark2Critical, cmBreach, kamBreach };
+  }, [filteredIssues, tick]);
 
-  const byCategory = useMemo(() => {
+  // ===== 7-day trend =====
+  const trend7d = useMemo(() => {
+    const days: { date: string; label: string; newIssues: number; resolved: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      const label = `${d.getMonth() + 1}/${d.getDate()}`;
+      const newIssues = filteredIssues.filter((i) => i.created_at.slice(0, 10) === ds).length;
+      const resolved = filteredIssues.filter((i) => i.updated_at.slice(0, 10) === ds && RESOLVED_STATUSES.includes(i.status)).length;
+      days.push({ date: ds, label, newIssues, resolved });
+    }
+    return days;
+  }, [filteredIssues]);
+
+  const maxTrend = Math.max(...trend7d.map((d) => Math.max(d.newIssues, d.resolved)), 1);
+
+  // ===== Category breakdown =====
+  const categoryBreakdown = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach((i) => map.set(i.category, (map.get(i.category) ?? 0) + 1));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [filtered]);
+    for (const i of filteredIssues) {
+      const c = i.category ?? "Unknown";
+      map.set(c, (map.get(c) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  }, [filteredIssues]);
 
-  const byZone = useMemo(() => {
+  const maxCategory = Math.max(...categoryBreakdown.map((c) => c.count), 1);
+
+  // ===== Zone breakdown =====
+  const zoneBreakdown = useMemo(() => {
     const map = new Map<string, number>();
-    filtered.forEach((i) => map.set(i.zone ?? "—", (map.get(i.zone ?? "—") ?? 0) + 1));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [filtered]);
-
-  const zoneHubs = useMemo(
-    () => hubs.filter((h) => !fZone || h.zone_code === fZone),
-    [hubs, fZone]
-  );
-
-  async function changeStatus(id: string, status: string) {
-    setUpdatingId(id);
-    // Map KAM status to OPS status — not all KAM statuses have OPS equivalents
-    const opsMap: Record<string, string> = {
-      "Open": "Open",
-      "In Progress": "In Progress",
-      "Resolved": "Solved",
-      "Not Remarks": "Open",
-      "Improper": "Open",
-      "Solved": "Solved",
-      "Closed": "Open",
-      "Re-opened": "Open",
-    };
-    const opsStatus = opsMap[status] ?? "Open";
-    const { error } = await supabase
-      .from("issues")
-      .update({ status, ops_status: opsStatus, ops_status_at: new Date().toISOString() })
-      .eq("id", id);
-    setUpdatingId(null);
-    if (error) setError(error.message);
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? { ...i, status: status as Issue["status"], ops_status: opsStatus, ops_status_at: new Date().toISOString() } as Issue
-          : i
-      )
-    );
-  }
-
-  // CM Action functions
-  async function setCmAction(id: string, action: string) {
-    setCmUpdatingId(id);
-    const update: Record<string, unknown> = {
-      cm_action: action,
-      cm_action_at: new Date().toISOString(),
-    };
-    if (action === "Pickup") {
-      update.cm_picked_by = user!.email;
+    for (const i of filteredIssues) {
+      const z = i.zone ?? "Unknown";
+      map.set(z, (map.get(z) ?? 0) + 1);
     }
-    const { error } = await supabase
-      .from("issues")
-      .update(update)
-      .eq("id", id);
-    setCmUpdatingId(null);
-    if (error) setError(error.message);
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              cm_action: action as Issue["cm_action"],
-              cm_action_at: new Date().toISOString(),
-              cm_picked_by: action === "Pickup" ? user!.email : i.cm_picked_by,
-            } as Issue
-          : i
-      )
-    );
-  }
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  }, [filteredIssues]);
 
-  async function giveJustification(id: string, text: string) {
-    setCmUpdatingId(id);
-    const issue = issues.find((i) => i.id === id);
-    const newCount = (issue?.cm_justification_count ?? 0) + 1;
-    const update: Record<string, unknown> = {
-      cm_justification: text.trim(),
-      cm_justification_count: newCount,
-    };
-    if (newCount >= CM_JUSTIFICATION_MAX) {
-      update.cm_blocked = true;
+  const maxZone = Math.max(...zoneBreakdown.map((z) => z.count), 1);
+
+  // ===== Status distribution =====
+  const statusDist = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const i of filteredIssues) {
+      map.set(i.status, (map.get(i.status) ?? 0) + 1);
     }
-    const { error } = await supabase
-      .from("issues")
-      .update(update)
-      .eq("id", id);
-    setCmUpdatingId(null);
-    setCmJustification("");
-    setCmJustificationId(null);
-    if (error) setError(error.message);
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              cm_justification: text.trim(),
-              cm_justification_count: newCount,
-              cm_blocked: newCount >= CM_JUSTIFICATION_MAX,
-            } as Issue
-          : i
-      )
-    );
-  }
+    const total = filteredIssues.length || 1;
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count, pct: Math.round((count / total) * 100) }));
+  }, [filteredIssues]);
 
-  // KAM Action functions
-  async function setKamAction(id: string) {
-    setKamUpdatingId(id);
-    const { error } = await supabase
-      .from("issues")
-      .update({
-        kam_followup_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-    setKamUpdatingId(null);
-    if (error) setError(error.message);
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, kam_followup_at: new Date().toISOString() } as Issue : i
-      )
-    );
-  }
-
-  async function giveKamJustification(id: string, text: string) {
-    setKamUpdatingId(id);
-    const issue = issues.find((i) => i.id === id);
-    const newCount = (issue?.kam_justification_count ?? 0) + 1;
-    const update: Record<string, unknown> = {
-      kam_justification: text.trim(),
-      kam_justification_count: newCount,
-    };
-    if (newCount >= KAM_JUSTIFICATION_MAX) {
-      update.kam_blocked = true;
-      update.kam_lead_alerted = true;
+  // ===== Priority breakdown =====
+  const priorityBreakdown = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const i of filteredIssues) {
+      const p = i.priority ?? "Medium";
+      map.set(p, (map.get(p) ?? 0) + 1);
     }
-    const { error } = await supabase
-      .from("issues")
-      .update(update)
-      .eq("id", id);
-    setKamUpdatingId(null);
-    setKamJustification("");
-    setKamJustificationId(null);
-    if (error) setError(error.message);
-    setIssues((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              kam_justification: text.trim(),
-              kam_justification_count: newCount,
-              kam_blocked: newCount >= KAM_JUSTIFICATION_MAX,
-              kam_lead_alerted: newCount >= KAM_JUSTIFICATION_MAX,
-            } as Issue
-          : i
-      )
-    );
+    const total = filteredIssues.length || 1;
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count, pct: Math.round((count / total) * 100) }));
+  }, [filteredIssues]);
+
+  // ===== Recent issues (last 10) =====
+  const recentIssues = useMemo(() => {
+    return filteredIssues.slice(0, 10);
+  }, [filteredIssues]);
+
+  // ===== Hub Performance Data =====
+  type HubRow = {
+    hub: string;
+    issues: number;
+    hubSlaPct: number;
+    avgReply: number | null;
+    commentPct: number;
+    resolvedPct: number;
+    kamScore: number;
+    kamFailed: number;
+    cmBreach: number;
+    unjustified: number;
+    slaMet: number;
+    slaBreached: number;
+    slaPending: number;
+  };
+
+  const hubRows = useMemo(() => {
+    const map = new Map<string, HubRow>();
+    for (const issue of filteredIssues) {
+      const hubName = issue.hub ?? "Unassigned";
+      if (!map.has(hubName)) {
+        map.set(hubName, {
+          hub: hubName, issues: 0, hubSlaPct: 0, avgReply: null, commentPct: 0,
+          resolvedPct: 0, kamScore: 100, kamFailed: 0, cmBreach: 0, unjustified: 0,
+          slaMet: 0, slaBreached: 0, slaPending: 0,
+        });
+      }
+      const row = map.get(hubName)!;
+      row.issues++;
+      if (issue.ops_remark1_at) {
+        const diffMin = (new Date(issue.ops_remark1_at).getTime() - new Date(issue.created_at).getTime()) / 60000;
+        if (diffMin <= HUB_SLA_MINUTES) row.slaMet++; else row.slaBreached++;
+        const hours = diffMin / 60;
+        row.avgReply = row.avgReply === null ? hours : (row.avgReply + hours) / 2;
+      } else {
+        const elapsedMin = (Date.now() - new Date(issue.created_at).getTime()) / 60000;
+        if (elapsedMin <= HUB_SLA_MINUTES) row.slaPending++; else row.slaBreached++;
+      }
+      if (issue.ops_remark1 || issue.ops_remark2 || issue.kam_justification || issue.cm_justification) row.commentPct++;
+      if (RESOLVED_STATUSES.includes(issue.status)) row.resolvedPct++;
+      const kamJCount = issue.kam_justification_count ?? 0;
+      row.kamScore = Math.max(0, row.kamScore - (kamJCount * 20) / row.issues);
+      if (issue.kam_blocked || (issue.kam_justification_count ?? 0) >= 2) row.kamFailed++;
+      if (issue.cm_blocked || (issue.cm_justification_count ?? 0) >= 2) row.cmBreach++;
+      if (issue.cm_blocked && !issue.cm_justification) row.unjustified++;
+      if (issue.kam_blocked && !issue.kam_justification) row.unjustified++;
+    }
+    return Array.from(map.values()).map((r) => ({
+      ...r,
+      hubSlaPct: pct(r.slaMet, r.issues),
+      commentPct: pct(r.commentPct, r.issues),
+      resolvedPct: pct(r.resolvedPct, r.issues),
+      kamScore: Math.round(r.kamScore),
+    })).sort((a, b) => b.issues - a.issues);
+  }, [filteredIssues, tick]);
+
+  const topHubsByVolume = hubRows.slice(0, 10);
+  const topBreachedHubs = [...hubRows].filter((r) => r.slaBreached > 0).sort((a, b) => b.slaBreached - a.slaBreached).slice(0, 10);
+  const hubSlaSplit = useMemo(() => {
+    let met = 0, breached = 0, pending = 0;
+    for (const row of hubRows) { met += row.slaMet; breached += row.slaBreached; pending += row.slaPending; }
+    return { met, breached, pending, total: met + breached + pending };
+  }, [hubRows]);
+  const hubNeedsAttention = hubRows.filter((r) => r.slaBreached > 0 || r.cmBreach > 0 || r.kamFailed > 0);
+
+  // ===== Team Performance Data =====
+  type TeamRow = {
+    kamId: string;
+    kamName: string;
+    issues: number;
+    kamSlaPct: number;
+    avgFollowup: number | null;
+    commentPct: number;
+    resolvedPct: number;
+    kamScore: number;
+    kamFailed: number;
+    cmBreach: number;
+    unjustified: number;
+    slaMet: number;
+    slaBreached: number;
+    slaPending: number;
+  };
+
+  const teamRows = useMemo(() => {
+    const map = new Map<string, TeamRow>();
+    for (const issue of filteredIssues) {
+      const kamId = issue.kam_id ?? "Unassigned";
+      const kamName = kams.find((k) => k.id === kamId)?.full_name ?? "Unassigned";
+      if (!map.has(kamId)) {
+        map.set(kamId, {
+          kamId, kamName, issues: 0, kamSlaPct: 0, avgFollowup: null, commentPct: 0,
+          resolvedPct: 0, kamScore: 100, kamFailed: 0, cmBreach: 0, unjustified: 0,
+          slaMet: 0, slaBreached: 0, slaPending: 0,
+        });
+      }
+      const row = map.get(kamId)!;
+      row.issues++;
+      if (issue.kam_followup_at) {
+        const diffMin = (new Date(issue.kam_followup_at).getTime() - new Date(issue.created_at).getTime()) / 60000;
+        if (diffMin <= KAM_SLA_HOURS * 60) row.slaMet++; else row.slaBreached++;
+        const hours = diffMin / 60;
+        row.avgFollowup = row.avgFollowup === null ? hours : (row.avgFollowup + hours) / 2;
+      } else {
+        const elapsedMin = (Date.now() - new Date(issue.created_at).getTime()) / 60000;
+        if (elapsedMin <= KAM_SLA_HOURS * 60) row.slaPending++; else row.slaBreached++;
+      }
+      if (issue.ops_remark1 || issue.ops_remark2 || issue.kam_justification || issue.cm_justification) row.commentPct++;
+      if (RESOLVED_STATUSES.includes(issue.status)) row.resolvedPct++;
+      const kamJCount = issue.kam_justification_count ?? 0;
+      row.kamScore = Math.max(0, row.kamScore - (kamJCount * 20) / row.issues);
+      if (issue.kam_blocked || (issue.kam_justification_count ?? 0) >= 2) row.kamFailed++;
+      if (issue.cm_blocked || (issue.cm_justification_count ?? 0) >= 2) row.cmBreach++;
+      if (issue.kam_blocked && !issue.kam_justification) row.unjustified++;
+      if (issue.cm_blocked && !issue.cm_justification) row.unjustified++;
+    }
+    return Array.from(map.values()).map((r) => ({
+      ...r,
+      kamSlaPct: pct(r.slaMet, r.issues),
+      commentPct: pct(r.commentPct, r.issues),
+      resolvedPct: pct(r.resolvedPct, r.issues),
+      kamScore: Math.round(r.kamScore),
+    })).sort((a, b) => b.issues - a.issues);
+  }, [filteredIssues, kams, tick]);
+
+  const topTeamsByVolume = teamRows.slice(0, 10);
+  const topBreachedTeams = [...teamRows].filter((r) => r.slaBreached > 0).sort((a, b) => b.slaBreached - a.slaBreached).slice(0, 10);
+  const teamSlaSplit = useMemo(() => {
+    let met = 0, breached = 0, pending = 0;
+    for (const row of teamRows) { met += row.slaMet; breached += row.slaBreached; pending += row.slaPending; }
+    return { met, breached, pending, total: met + breached + pending };
+  }, [teamRows]);
+  const teamNeedsAttention = teamRows.filter((r) => r.slaBreached > 0 || r.cmBreach > 0 || r.kamFailed > 0);
+
+  // ===== CM Action handlers =====
+  async function handleCmAction(issueId: string, action: string) {
+    setUpdatingId(issueId);
+    try {
+      const updates: Record<string, unknown> = { cm_action: action, cm_action_at: new Date().toISOString() };
+      if (action === "Pickup") {
+        updates.cm_picked_by = user?.email ?? "";
+        updates.cm_blocked = false;
+        updates.cm_justification = null;
+        updates.cm_justification_count = 0;
+      }
+      await supabase.from("issues").update(updates).eq("id", issueId);
+      setIssues((prev) => prev.map((i) => (i.id === issueId ? { ...i, ...updates } : i)));
+    } catch (e) {
+      alert("Failed to update issue");
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  function resetFilters() {
-    setSearch("");
-    setFStatus("");
-    setFPriority("");
-    setFZone("");
-    setFHub("");
-    setFCategory("");
+  async function handleKamAction(issueId: string) {
+    setUpdatingId(issueId);
+    try {
+      const updates = { kam_followup_at: new Date().toISOString(), kam_blocked: false, kam_justification: null, kam_justification_count: 0 };
+      await supabase.from("issues").update(updates).eq("id", issueId);
+      setIssues((prev) => prev.map((i) => (i.id === issueId ? { ...i, ...updates } : i)));
+    } catch (e) {
+      alert("Failed to update issue");
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  const hasFilters =
-    search || fStatus || fPriority || fZone || fHub || fCategory;
+  async function handleJustification(issueId: string, type: "kam" | "cm") {
+    if (!justifyText.trim()) return;
+    setUpdatingId(issueId);
+    try {
+      const field = type === "kam" ? "kam_justification" : "cm_justification";
+      const countField = type === "kam" ? "kam_justification_count" : "cm_justification_count";
+      const blockedField = type === "kam" ? "kam_blocked" : "cm_blocked";
+      const atField = type === "kam" ? "kam_followup_at" : "cm_action_at";
+      const updates: Record<string, unknown> = {
+        [field]: justifyText,
+        [countField]: (filteredIssues.find((i) => i.id === issueId)?.[type === "kam" ? "kam_justification_count" : "cm_justification_count"] ?? 0) + 1,
+        [blockedField]: false,
+        [atField]: new Date().toISOString(),
+      };
+      if (type === "kam") {
+        updates.kam_lead_alerted = true;
+      }
+      await supabase.from("issues").update(updates).eq("id", issueId);
+      setIssues((prev) => prev.map((i) => (i.id === issueId ? { ...i, ...updates } : i)));
+      setJustifyTarget(null);
+      setJustifyText("");
+    } catch (e) {
+      alert("Failed to submit justification");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
-  if (!user) {
+  // ===== Donut SVG helper =====
+  function Donut({ met, breached, pending, total, label }: { met: number; breached: number; pending: number; total: number; label: string }) {
+    const dt = total || 1;
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-500">
-        Loading…
+      <svg viewBox="0 0 120 120" className="h-36 w-36">
+        <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+        {met > 0 && (
+          <circle cx="60" cy="60" r="45" fill="none" stroke="#10b981" strokeWidth="14"
+            strokeDasharray={`${(met / dt) * 282.7} 282.7`} strokeDashoffset="70.7"
+            transform="rotate(-90 60 60)" strokeLinecap="round" />
+        )}
+        {breached > 0 && (
+          <circle cx="60" cy="60" r="45" fill="none" stroke="#ef4444" strokeWidth="14"
+            strokeDasharray={`${(breached / dt) * 282.7} 282.7`}
+            strokeDashoffset={`${70.7 - (met / dt) * 282.7}`}
+            transform="rotate(-90 60 60)" strokeLinecap="round" />
+        )}
+        <text x="60" y="55" textAnchor="middle" fill="#f1f5f9" fontSize="20" fontWeight="bold">{total}</text>
+        <text x="60" y="72" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9">{label}</text>
+      </svg>
+    );
+  }
+
+  // ===== Status donut =====
+  const statusDonutTotal = filteredIssues.length || 1;
+  const statusColors: Record<string, string> = {
+    "Open": "#3b82f6", "In Progress": "#8b5cf6", "Resolved": "#10b981",
+    "Solved": "#10b981", "Closed": "#6b7280", "Re-opened": "#f59e0b",
+    "Not Remarks": "#ef4444", "Improper": "#dc2626",
+  };
+  const statusDonut = (() => {
+    const segments = statusDist.map((s, i) => ({
+      ...s,
+      color: statusColors[s.name] ?? "#6b7280",
+      startAngle: i === 0 ? 0 : statusDist.slice(0, i).reduce((sum, s2) => sum + (s2.count / statusDonutTotal) * 360, 0),
+    }));
+    return segments;
+  })();
+
+  if (loading) {
+    return (
+      <div className="dashboard-bg min-h-screen">
+        <div className="flex h-screen items-center justify-center">
+          <div className="glass rounded-2xl px-8 py-6 text-slate-400">Loading CarryBee Dashboard…</div>
+        </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="dashboard-bg min-h-screen">
+        <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
+        <div className="mx-auto max-w-7xl px-4 py-12">
+          <div className="glass rounded-2xl border-red-500/20 p-6">
+            <p className="text-red-400">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const maxVol = topHubsByVolume.length > 0 ? topHubsByVolume[0].issues : 1;
+  const maxHubBreach = topBreachedHubs.length > 0 ? topBreachedHubs[0].slaBreached : 1;
+  const maxTeamVol = topTeamsByVolume.length > 0 ? topTeamsByVolume[0].issues : 1;
+  const maxTeamBreach = topBreachedTeams.length > 0 ? topTeamsByVolume[0].slaBreached : 1;
+
   return (
-    <>
-      <Nav
-        email={user.email}
-        name={kam?.full_name ?? access?.name ?? user.email.split("@")[0]}
-        role={access?.role ?? "Member"}
-        teamName={access?.teamName ?? ""}
-      />
+    <div className="dashboard-bg min-h-screen">
+      <Nav email={user?.email ?? ""} name={access?.name ?? ""} role={access?.role} teamName={access?.teamName} />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Issue Dashboard</h1>
-              {access && (
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
-                    access.role === "Super Admin"
-                      ? "bg-purple-100 text-purple-800 ring-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:ring-purple-700"
-                      : access.role === "Team Lead"
-                      ? "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:ring-blue-700"
-                      : "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600"
-                  }`}
-                >
-                  {access.role}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Welcome back, {kam?.full_name ?? access?.name ?? "KAM"} —{" "}
-              {access?.teamName ? `${access.teamName} team` : "here are your escalated issues"}.
-            </p>
-          </div>
-          {access && (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/analytics"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                  <path d="M3 17a1 1 0 011-1h2a1 1 0 110 2H4a1 1 0 01-1-1zm6 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm6 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zM3 12a1 1 0 011-1h2a1 1 0 110 2H4a1 1 0 01-1-1zm6 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm6 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zM3 7a1 1 0 011-1h2a1 1 0 110 2H4a1 1 0 01-1-1zm6 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1zm6 0a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" />
-                </svg>
-                Analytics
-              </Link>
-              <Link
-                href="/escalate"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-brand-200 transition hover:bg-brand-600"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                  <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                </svg>
-                Escalate New Issue
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {error && (
-          <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <StatCard label="Total Issues" value={stats.total} tone="slate" />
-          <StatCard label="Open" value={stats.open} tone="amber" />
-          <StatCard label="In Progress" value={stats.inProgress} tone="blue" />
-          <StatCard label="Resolved / Closed" value={stats.resolved} tone="emerald" />
-          <StatCard label="Critical (Active)" value={stats.critical} tone="red" />
-          <StatCard label="SLA Breach (1st remarks)" value={slaCounts.breach} tone="amber" />
-          <StatCard label="SLA Critical (2nd remarks)" value={slaCounts.critical} tone="red" />
-        </div>
-
-        {/* Charts */}
-        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
-              Issues by Category
-            </h2>
-            <div className="space-y-2.5">
-              {byCategory.slice(0, 8).map(([label, value], idx) => (
-                <BarRow
-                  key={label}
-                  label={label}
-                  value={value}
-                  max={byCategory[0][1]}
-                  color={idx === 0 ? "bg-brand" : "bg-brand-400"}
-                />
-              ))}
-              {byCategory.length === 0 && (
-                <p className="text-sm text-slate-400">No data</p>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
-              Issues by Zone
-            </h2>
-            <div className="space-y-2.5">
-              {byZone.map(([label, value]) => (
-                <BarRow
-                  key={label}
-                  label={label}
-                  value={value}
-                  max={byZone[0][1]}
-                  color="bg-blue-500"
-                />
-              ))}
-              {byZone.length === 0 && <p className="text-sm text-slate-400">No data</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[220px] flex-1">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Search
-              </label>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Reference no, merchant, parcel ID…"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand-100"
-              />
-            </div>
-            <FilterSelect label="Status" value={fStatus} onChange={setFStatus} options={STATUSES as unknown as string[]} />
-            <FilterSelect label="Priority" value={fPriority} onChange={setFPriority} options={PRIORITIES as unknown as string[]} />
-            <FilterSelect
-              label="Zone"
-              value={fZone}
-              onChange={(v) => { setFZone(v); setFHub(""); }}
-              options={zones.map((z) => z.code)}
-            />
-            <FilterSelect
-              label="Hub"
-              value={fHub}
-              onChange={setFHub}
-              options={zoneHubs.map((h) => h.name)}
-              disabled={!fZone}
-            />
-            <FilterSelect
-              label="Category"
-              value={fCategory}
-              onChange={setFCategory}
-              options={categories}
-            />
+      {/* Tab Bar */}
+      <div className="sticky top-16 z-20 glass-nav">
+        <div className="mx-auto flex max-w-7xl items-center gap-1 px-4 py-2 sm:px-6">
+          {TABS.map((tab) => (
             <button
-              onClick={resetFilters}
-              disabled={!hasFilters}
-              className="mb-0.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 disabled:opacity-40"
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`glass-tab flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key ? "glass-tab-active" : "text-slate-400 hover:text-slate-200"}`}
             >
-              Reset
+              <span className="text-base">{tab.icon}</span>
+              {tab.label}
             </button>
+          ))}
+          <div className="ml-auto hidden items-center gap-2 sm:flex">
+            <span className="pulse-dot h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span className="text-xs text-slate-500">Live · {filteredIssues.length} issues</span>
           </div>
         </div>
+      </div>
 
-        {/* Table */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-3">Reference</th>
-                  <th className="px-4 py-3">Merchant</th>
-                  <th className="px-4 py-3">Parcel ID</th>
-                  <th className="px-4 py-3">Zone / Hub</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Priority</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">CM Action</th>
-                  <th className="px-4 py-3">KAM Action</th>
-                  <th className="px-4 py-3">Created</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading && (
-                  <tr>
-                    <td colSpan={10} className="px-4 py-10 text-center text-slate-400">
-                      Loading issues…
-                    </td>
-                  </tr>
-                )}
-                {!loading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="px-4 py-10 text-center">
-                      <p className="font-medium text-slate-600">No issues match your filters.</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {issues.length === 0
-                          ? "Escalate your first issue to get started."
-                          : "Try adjusting the filters above."}
-                      </p>
-                    </td>
-                  </tr>
-                )}
-                {filtered.map((issue) => (
-                  <tr
-                    key={issue.id}
-                    className="group transition hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/issues?id=${issue.id}`}
-                        className="font-mono text-xs font-semibold text-brand hover:underline"
-                      >
-                        {issue.reference_no}
-                      </Link>
-                      <div className="mt-0.5 text-[11px] text-slate-400">
-                        {formatDate(issue.created_at)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {issue.merchant_name}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-600">
-                      {issue.parcel_id ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                        {issue.zone ?? "—"}
-                      </span>
-                      <div className="mt-1 text-xs text-slate-500">{issue.hub ?? "—"}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{issue.category}</span>
-                        {(() => {
-                          const pKey = `${issue.category} → ${issue.subcategory}`;
-                          const p = catPriorityMap[pKey];
-                          if (!p) return null;
-                          const style = p === "Critical" ? "bg-red-100 text-red-700 ring-red-200" : p === "High" ? "bg-orange-100 text-orange-700 ring-orange-200" : "bg-sky-100 text-sky-700 ring-sky-200";
-                          return <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset ${style}`}>{p}</span>;
-                        })()}
-                      </div>
-                      <div className="text-xs text-slate-400">{issue.subcategory}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <PriorityBadge priority={issue.priority} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={issue.ops_status ?? issue.status}
-                        disabled={updatingId === issue.id}
-                        onChange={(e) => changeStatus(issue.id, e.target.value)}
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold outline-none ring-1 ring-inset transition disabled:opacity-60 ${STATUS_CLASS[issue.ops_status ?? issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
-                      >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s} className="bg-white">
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      {ibKamIds.includes(issue.kam_id) &&
-                      access &&
-                      canUseCmAction(access.role, access.teamName) ? (
-                        <div className="flex flex-col gap-1">
-                          <span
-                            className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-                              issue.cm_action
-                                ? CM_ACTION_STYLE[issue.cm_action] ??
-                                  "bg-slate-100 text-slate-700 ring-slate-200"
-                                : "bg-slate-100 text-slate-500 ring-slate-200"
-                            }`}
-                          >
-                            {issue.cm_action ?? "Pending"}
-                          </span>
-                          {(() => {
-                            const s = getCmActionSlaState(issue);
-                            if (s.level === "ok" && issue.cm_action)
-                              return null;
-                            return (
-                              <span
-                                className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
-                                  s.level === "critical"
-                                    ? "bg-red-100 text-red-800 ring-red-200"
-                                    : "bg-amber-100 text-amber-800 ring-amber-200"
-                                }`}
-                              >
-                                ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {access && canUseKamAction(access.role, access.teamName) ? (
-                        <div className="flex flex-col gap-1">
-                          <span
-                            className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-                              issue.kam_followup_at
-                                ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
-                                : issue.kam_blocked
-                                ? "bg-red-100 text-red-800 ring-red-200"
-                                : "bg-slate-100 text-slate-500 ring-slate-200"
-                            }`}
-                          >
-                            {issue.kam_followup_at
-                              ? "Follow-up done"
-                              : issue.kam_blocked
-                              ? "BLOCKED"
-                              : "Pending"}
-                          </span>
-                          {(() => {
-                            const s = getKamActionSlaState(issue);
-                            if (s.level === "ok" && issue.kam_followup_at)
-                              return null;
-                            return (
-                              <span
-                                className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
-                                  s.level === "breach"
-                                    ? "bg-amber-100 text-amber-800 ring-amber-200"
-                                    : "bg-emerald-100 text-emerald-800 ring-emerald-200"
-                                }`}
-                              >
-                                {s.level === "breach" ? "⚠ SLA BREACH" : "✓ On track"}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {formatDate(issue.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+        {/* ===== OVERVIEW TAB ===== */}
+        {activeTab === "overview" && (
+          <div className="animate-slide-in space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-100">
+                  Welcome back, <span className="gradient-text">{access?.name}</span>
+                </h1>
+                <p className="text-sm text-slate-500">
+                  {access?.role} · {access?.teamName} Team · {filteredIssues.length} issues
+                </p>
+              </div>
+              {access?.canEscalate && (
+                <Link href="/escalate" className="glass rounded-xl glow-brand-sm px-4 py-2.5 text-sm font-bold text-brand-500 transition hover:bg-brand-500/10">
+                  + Raise Issue
+                </Link>
+              )}
+            </div>
 
-        {/* CM Action — IB issues only */}
-        {access && canUseCmAction(access.role, access.teamName) && (
-          <div className="mt-8 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
-            <div className="border-b border-violet-100 bg-violet-50 px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700">
-                  CM Action — IB Issues
-                </h2>
-                <span className="text-[11px] text-violet-500">
-                  Pickup SLA: 20 min · 1st Followup: 2h · 2nd Followup: 1.5h · 3rd Followup: 1h
-                </span>
+            {/* Filter Bar */}
+            <div className="glass flex flex-wrap items-center gap-3 rounded-2xl p-3">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Zone</span>
+              <select value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-200">
+                {zones.map((z) => <option key={z} value={z}>{z === "All" ? "All" : z}</option>)}
+              </select>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Hub</span>
+              <select value={hubFilter} onChange={(e) => setHubFilter(e.target.value)} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-200">
+                {hubs.map((h) => <option key={h} value={h}>{h === "All" ? "All" : h}</option>)}
+              </select>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">KAM</span>
+              <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-200">
+                {teamNames.map((t) => <option key={t} value={t}>{t === "All" ? "All" : t}</option>)}
+              </select>
+              <button onClick={() => { setZoneFilter("All"); setHubFilter("All"); setTeamFilter("All"); }} className="glass-input rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200">
+                Reset
+              </button>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+              {[
+                { label: "Total", value: kpis.total, icon: "📋", color: "text-brand-500", glow: "glow-brand-sm" },
+                { label: "Open", value: kpis.open, icon: "🔵", color: "text-blue-400", glow: "" },
+                { label: "In Progress", value: kpis.inProgress, icon: "🟣", color: "text-purple-400", glow: "" },
+                { label: "Resolved", value: kpis.resolved, icon: "✅", color: "text-emerald-400", glow: "" },
+                { label: "Not Remarks", value: kpis.notRemarks, icon: "⚠️", color: "text-red-400", glow: "" },
+                { label: "Improper", value: kpis.improper, icon: "🚫", color: "text-rose-400", glow: "" },
+              ].map((k) => (
+                <div key={k.label} className={`glass card-lift rounded-2xl p-4 ${k.glow}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{k.icon}</span>
+                  </div>
+                  <div className={`mt-2 text-2xl font-bold ${k.color}`}>{k.value}</div>
+                  <div className="text-xs text-slate-500">{k.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* SLA Alert Cards */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {[
+                { label: "1st Remarks Breach", value: slaAlerts.remark1Breach, color: "text-red-400", icon: "⏰" },
+                { label: "2nd Remarks Critical", value: slaAlerts.remark2Critical, color: "text-orange-400", icon: "🔥" },
+                { label: "CM SLA Breach", value: slaAlerts.cmBreach, color: "text-purple-400", icon: "🏪" },
+                { label: "KAM SLA Breach", value: slaAlerts.kamBreach, color: "text-pink-400", icon: "👥" },
+              ].map((s) => (
+                <div key={s.label} className="glass card-lift rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{s.icon}</span>
+                    <span className={`text-2xl font-bold ${s.value > 0 ? s.color : "text-slate-600"}`}>{s.value}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 7-day Trend + Status Donut */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="glass rounded-2xl p-5 lg:col-span-2">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">7-Day Trend</h2>
+                <div className="flex items-end justify-between gap-2 h-48">
+                  {trend7d.map((d) => (
+                    <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="flex w-full flex-1 items-end justify-center gap-1">
+                        <div className="w-3 rounded-t bg-brand-500/80 transition-all" style={{ height: `${(d.newIssues / maxTrend) * 100}%` }} title={`New: ${d.newIssues}`}></div>
+                        <div className="w-3 rounded-t bg-emerald-500/60 transition-all" style={{ height: `${(d.resolved / maxTrend) * 100}%` }} title={`Resolved: ${d.resolved}`}></div>
+                      </div>
+                      <span className="text-[10px] text-slate-500">{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-brand-500"></span>New Issues</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Resolved</span>
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Status Distribution</h2>
+                <div className="flex flex-col items-center gap-4">
+                  <svg viewBox="0 0 120 120" className="h-36 w-36">
+                    <circle cx="60" cy="60" r="45" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
+                    {statusDonut.map((s, i) => (
+                      <circle key={i} cx="60" cy="60" r="45" fill="none" stroke={s.color} strokeWidth="14"
+                        strokeDasharray={`${(s.count / statusDonutTotal) * 282.7} 282.7`}
+                        strokeDashoffset={`${70.7 - (statusDonut.slice(0, i).reduce((sum, s2) => sum + (s2.count / statusDonutTotal) * 282.7, 0))}`}
+                        transform="rotate(-90 60 60)" strokeLinecap="round" />
+                    ))}
+                    <text x="60" y="58" textAnchor="middle" fill="#f1f5f9" fontSize="22" fontWeight="bold">{filteredIssues.length}</text>
+                    <text x="60" y="75" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9">issues</text>
+                  </svg>
+                  <div className="flex flex-col gap-1 text-xs">
+                    {statusDist.map((s) => (
+                      <div key={s.name} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: statusColors[s.name] ?? "#6b7280" }}></span>
+                        <span className="text-slate-400">{s.name}:</span>
+                        <span className="font-bold text-slate-200">{s.count}</span>
+                        <span className="text-slate-600">({s.pct}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-3">Reference</th>
-                    <th className="px-4 py-3">CM Action</th>
-                    <th className="px-4 py-3">SLA</th>
-                    <th className="px-4 py-3">Justification</th>
-                    <th className="px-4 py-3">Picked By</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filtered
-                    .filter((i) => ibKamIds.includes(i.kam_id))
-                    .map((issue) => {
-                      const canAct = canPerformCmAction(
-                        access.role,
-                        access.teamName,
-                        issue.cm_blocked
-                      );
-                      const isJustifying = cmJustificationId === issue.id;
+
+            {/* Category + Zone Charts + Priority */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Category</h2>
+                <div className="space-y-2">
+                  {categoryBreakdown.slice(0, 8).map((c) => (
+                    <div key={c.name} className="flex items-center gap-2">
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={c.name}>{c.name}</div>
+                      <div className="flex-1">
+                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (c.count / maxCategory) * 100)}%` }}>
+                            <span className="text-[9px] font-bold text-slate-900">{c.count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {categoryBreakdown.length === 0 && <div className="text-sm text-slate-500">No data</div>}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Zone</h2>
+                <div className="space-y-2">
+                  {zoneBreakdown.slice(0, 8).map((z) => (
+                    <div key={z.name} className="flex items-center gap-2">
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={z.name}>{z.name}</div>
+                      <div className="flex-1">
+                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-indigo-500 to-purple-400 px-2" style={{ width: `${Math.max(2, (z.count / maxZone) * 100)}%` }}>
+                            <span className="text-[9px] font-bold text-white">{z.count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {zoneBreakdown.length === 0 && <div className="text-sm text-slate-500">No data</div>}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Priority Breakdown</h2>
+                <div className="flex flex-col gap-3">
+                  {priorityBreakdown.map((p) => {
+                    const colors: Record<string, string> = { Critical: "#ef4444", High: "#ffca00", Medium: "#3b82f6", Low: "#6b7280" };
+                    return (
+                      <div key={p.name}>
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="font-semibold text-slate-300">{p.name}</span>
+                          <span className="text-slate-500">{p.count} ({p.pct}%)</span>
+                        </div>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${p.pct}%`, background: colors[p.name] ?? "#6b7280" }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {priorityBreakdown.length === 0 && <div className="text-sm text-slate-500">No data</div>}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Issues Table */}
+            <div className="glass rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Recent Issues</h2>
+                <span className="text-xs text-slate-500">{filteredIssues.length} total</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm glass-table">
+                  <thead>
+                    <tr className="border-b border-white/5">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-500">Ref</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-500">Merchant</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-500">Category</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-500">Priority</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-500">Status</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-500">SLA</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-500">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentIssues.map((issue) => {
+                      const sla = getSlaState(issue);
+                      const canCm = canUseCmAction(access?.role ?? "", access?.teamName ?? "");
+                      const canKam = canUseKamAction(access?.role ?? "", access?.teamName ?? "");
                       const cmSla = getCmActionSlaState(issue);
-                      const cmPickupSlaBreached = !issue.cm_action && cmSla.level === "breach";
+                      const kamSla = getKamActionSlaState(issue);
+                      const pKey = `${issue.category} → ${issue.subcategory}`;
+                      const p = catPriorityMap[pKey] ?? "Medium";
                       return (
-                        <tr key={issue.id} className="transition hover:bg-slate-50">
+                        <tr key={issue.id} className="transition">
                           <td className="px-4 py-3">
-                            <Link
-                              href={`/issues?id=${issue.id}`}
-                              className="font-mono text-xs font-semibold text-brand hover:underline"
-                            >
+                            <Link href={`/issues?id=${issue.id}`} className="font-mono text-xs font-semibold text-brand-400 hover:text-brand-300">
                               {issue.reference_no}
                             </Link>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3 text-slate-300">{issue.merchant_name}</td>
+                          <td className="px-3 py-3">
                             <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-                                  issue.cm_action
-                                    ? CM_ACTION_STYLE[issue.cm_action] ??
-                                      "bg-slate-100 text-slate-700 ring-slate-200"
-                                    : "bg-slate-100 text-slate-500 ring-slate-200"
-                                }`}
-                              >
-                                {issue.cm_action ?? "Pending"}
+                              <span className="text-slate-300">{issue.category}</span>
+                              <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-bold ring-1 ring-inset ${
+                                p === "Critical" ? "bg-red-500/15 text-red-400 ring-red-500/20"
+                                : p === "High" ? "bg-brand-500/15 text-brand-400 ring-brand-500/20"
+                                : "bg-blue-500/15 text-blue-400 ring-blue-500/20"
+                              }`}>{p}</span>
+                            </div>
+                            <div className="text-xs text-slate-500">{issue.subcategory}</div>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                              issue.priority === "Critical" ? "bg-red-500/15 text-red-400 ring-red-500/20"
+                              : issue.priority === "High" ? "bg-brand-500/15 text-brand-400 ring-brand-500/20"
+                              : issue.priority === "Medium" ? "bg-blue-500/15 text-blue-400 ring-blue-500/20"
+                              : "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                            }`}>{issue.priority}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                              STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                            }`}>{issue.status}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {sla.level === "ok" ? (
+                              <span className="text-[11px] text-slate-600">—</span>
+                            ) : (
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${SLA_STYLE[sla.level]}`}>
+                                ⚠ {sla.level === "critical" ? "CRITICAL" : "BREACH"}
                               </span>
-                              {issue.cm_blocked && (
-                                <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800 ring-1 ring-inset ring-red-200">
-                                  BLOCKED
-                                </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center justify-center gap-1">
+                              {canCm && issue.zone && ibKamIds.includes(issue.kam_id) && (
+                                cmSla.level !== "ok" ? (
+                                  issue.cm_blocked ? (
+                                    <button
+                                      onClick={() => setJustifyTarget({ type: "cm", issueId: issue.id })}
+                                      className="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-400 hover:bg-red-500/25"
+                                    >
+                                      Justify
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setJustifyTarget({ type: "cm", issueId: issue.id })}
+                                      className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
+                                    >
+                                      Justify
+                                    </button>
+                                  )
+                                ) : (
+                                  <button
+                                    onClick={() => handleCmAction(issue.id, "Pickup")}
+                                    disabled={updatingId === issue.id}
+                                    className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-400 hover:bg-brand-500/25 disabled:opacity-50"
+                                  >
+                                    Pick Up
+                                  </button>
+                                )
+                              )
+                              )}
+                              {canKam && (
+                                kamSla.level !== "ok" ? (
+                                  issue.kam_blocked ? (
+                                    <button
+                                      onClick={() => setJustifyTarget({ type: "kam", issueId: issue.id })}
+                                      className="rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-400 hover:bg-red-500/25"
+                                    >
+                                      Justify
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setJustifyTarget({ type: "kam", issueId: issue.id })}
+                                      className="rounded-lg bg-orange-500/15 px-2 py-1 text-[10px] font-bold text-orange-400 hover:bg-orange-500/25"
+                                    >
+                                      Justify
+                                    </button>
+                                  )
+                                ) : (
+                                  <button
+                                    onClick={() => handleKamAction(issue.id)}
+                                    disabled={updatingId === issue.id}
+                                    className="rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-bold text-purple-400 hover:bg-purple-500/25 disabled:opacity-50"
+                                  >
+                                    Follow Up
+                                  </button>
+                                )
+                              )
                               )}
                             </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <CmActionSlaBadge issue={issue} />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="whitespace-pre-wrap text-xs text-slate-700">
-                              {issue.cm_justification || "—"}
-                            </div>
-                            {issue.cm_justification_count > 0 && (
-                              <div className="mt-1 text-[11px] text-slate-400">
-                                {issue.cm_justification_count} / {CM_JUSTIFICATION_MAX} used
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-slate-500">
-                            {issue.cm_picked_by ?? "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            {isJustifying ? (
-                              <div className="flex flex-col gap-2">
-                                <textarea
-                                  value={cmJustification}
-                                  onChange={(e) =>
-                                    setCmJustification(e.target.value)
-                                  }
-                                  rows={2}
-                                  placeholder="Enter justification for not picking up…"
-                                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() =>
-                                      giveJustification(issue.id, cmJustification)
-                                    }
-                                    disabled={
-                                      cmUpdatingId === issue.id ||
-                                      !cmJustification.trim()
-                                    }
-                                    className="rounded-lg bg-violet-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
-                                  >
-                                    Submit
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setCmJustificationId(null);
-                                      setCmJustification("");
-                                    }}
-                                    className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex flex-wrap gap-1.5">
-                                {!issue.cm_action && (!cmPickupSlaBreached || issue.cm_justification_count > 0) && (
-                                  <CmActionBtn
-                                    label="Pick Up"
-                                    color="violet"
-                                    disabled={!canAct || cmUpdatingId === issue.id}
-                                    onClick={() =>
-                                      setCmAction(issue.id, "Pickup")
-                                    }
-                                  />
-                                )}
-                                {issue.cm_action === "Pickup" && (
-                                  <CmActionBtn
-                                    label="1st Followup"
-                                    color="blue"
-                                    disabled={!canAct || cmUpdatingId === issue.id}
-                                    onClick={() =>
-                                      setCmAction(issue.id, "1st Followup")
-                                    }
-                                  />
-                                )}
-                                {issue.cm_action === "1st Followup" && (
-                                  <CmActionBtn
-                                    label="2nd Followup"
-                                    color="sky"
-                                    disabled={!canAct || cmUpdatingId === issue.id}
-                                    onClick={() =>
-                                      setCmAction(issue.id, "2nd Followup")
-                                    }
-                                  />
-                                )}
-                                {issue.cm_action === "2nd Followup" && (
-                                  <CmActionBtn
-                                    label="3rd Followup"
-                                    color="emerald"
-                                    disabled={!canAct || cmUpdatingId === issue.id}
-                                    onClick={() =>
-                                      setCmAction(issue.id, "3rd Followup")
-                                    }
-                                  />
-                                )}
-                                {!issue.cm_action &&
-                                  cmPickupSlaBreached &&
-                                  !issue.cm_blocked &&
-                                  issue.cm_justification_count <
-                                    CM_JUSTIFICATION_MAX && (
-                                  <CmActionBtn
-                                    label="Justify"
-                                    color="amber"
-                                    onClick={() => {
-                                      setCmJustificationId(issue.id);
-                                      setCmJustification("");
-                                    }}
-                                  />
-                                  )}
-                                {issue.cm_blocked && !canAct && (
-                                  <span className="text-[11px] text-red-500">
-                                    Lead action required
-                                  </span>
-                                )}
-                              </div>
-                            )}
                           </td>
                         </tr>
                       );
                     })}
-                  {filtered.filter((i) => ibKamIds.includes(i.kam_id)).length ===
-                    0 && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-4 py-10 text-center text-slate-400"
-                      >
-                        No IB issues to show.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* KAM Action — all issues */}
-        {access && canUseKamAction(access.role, access.teamName) && (
-          <div className="mt-8 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
-            <div className="border-b border-violet-100 bg-violet-50 px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700">
-                  KAM Action — Follow-up Workflow
-                </h2>
-                <span className="text-[11px] text-violet-500">
-                  Follow-up SLA: 2 hours · Justification max 2× · After 2 justifications alert goes to Lead + Super Admin
-                </span>
+                  </tbody>
+                </table>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-3">Reference</th>
-                    <th className="px-4 py-3">KAM Action</th>
-                    <th className="px-4 py-3">SLA</th>
-                    <th className="px-4 py-3">Justification</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filtered.map((issue) => {
-                    const canAct = canPerformKamAction(
-                      access.role,
-                      access.teamName,
-                      issue.kam_blocked
-                    );
-                    const isJustifying = kamJustificationId === issue.id;
-                    const kamSla = getKamActionSlaState(issue);
-                    const kamSlaBreached = !issue.kam_followup_at && kamSla.level === "breach";
+
+            {/* Footer */}
+            <div className="flex items-center justify-between text-xs text-slate-600">
+              <span>CarryBee · Internal use · Updated {formatDateTime(new Date().toISOString())}</span>
+              <span>{filteredIssues.length} issues</span>
+            </div>
+          </div>
+        )}
+
+        {/* ===== ANALYTICS TAB ===== */}
+        {activeTab === "analytics" && (
+          <div className="animate-slide-in space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-100">Analytics</h1>
+              <p className="text-sm text-slate-500">Detailed issue analytics across all dimensions</p>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+              {[
+                { label: "Total", value: kpis.total, icon: "📋", color: "text-brand-500" },
+                { label: "Open", value: kpis.open, icon: "🔵", color: "text-blue-400" },
+                { label: "In Progress", value: kpis.inProgress, icon: "🟣", color: "text-purple-400" },
+                { label: "Resolved", value: kpis.resolved, icon: "✅", color: "text-emerald-400" },
+                { label: "Not Remarks", value: kpis.notRemarks, icon: "⚠️", color: "text-red-400" },
+                { label: "Improper", value: kpis.improper, icon: "🚫", color: "text-rose-400" },
+              ].map((k) => (
+                <div key={k.label} className="glass card-lift rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{k.icon}</span>
+                  </div>
+                  <div className={`mt-2 text-2xl font-bold ${k.color}`}>{k.value}</div>
+                  <div className="text-xs text-slate-500">{k.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* SLA Alerts */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {[
+                { label: "1st Remarks Breach", value: slaAlerts.remark1Breach, color: "text-red-400", icon: "⏰" },
+                { label: "2nd Remarks Critical", value: slaAlerts.remark2Critical, color: "text-orange-400", icon: "🔥" },
+                { label: "CM SLA Breach", value: slaAlerts.cmBreach, color: "text-purple-400", icon: "🏪" },
+                { label: "KAM SLA Breach", value: slaAlerts.kamBreach, color: "text-pink-400", icon: "👥" },
+              ].map((s) => (
+                <div key={s.label} className="glass card-lift rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl">{s.icon}</span>
+                    <span className={`text-2xl font-bold ${s.value > 0 ? s.color : "text-slate-600"}`}>{s.value}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 7-day Trend */}
+            <div className="glass rounded-2xl p-5">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">7-Day Trend</h2>
+              <div className="flex items-end justify-between gap-2 h-48">
+                {trend7d.map((d) => (
+                  <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
+                    <div className="flex w-full flex-1 items-end justify-center gap-1">
+                      <div className="w-3 rounded-t bg-brand-500/80 transition-all" style={{ height: `${(d.newIssues / maxTrend) * 100}%` }} title={`New: ${d.newIssues}`}></div>
+                      <div className="w-3 rounded-t bg-emerald-500/60 transition-all" style={{ height: `${(d.resolved / maxTrend) * 100}%` }} title={`Resolved: ${d.resolved}`}></div>
+                    </div>
+                    <span className="text-[10px] text-slate-500">{d.label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-brand-500"></span>New Issues</span>
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Resolved</span>
+              </div>
+            </div>
+
+            {/* Category + Zone + Priority */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Category</h2>
+                <div className="space-y-2">
+                  {categoryBreakdown.slice(0, 10).map((c) => (
+                    <div key={c.name} className="flex items-center gap-2">
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={c.name}>{c.name}</div>
+                      <div className="flex-1">
+                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (c.count / maxCategory) * 100)}%` }}>
+                            <span className="text-[9px] font-bold text-slate-900">{c.count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Issues by Zone</h2>
+                <div className="space-y-2">
+                  {zoneBreakdown.slice(0, 10).map((z) => (
+                    <div key={z.name} className="flex items-center gap-2">
+                      <div className="w-32 shrink-0 truncate text-xs text-slate-400" title={z.name}>{z.name}</div>
+                      <div className="flex-1">
+                        <div className="h-4 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-indigo-500 to-purple-400 px-2" style={{ width: `${Math.max(2, (z.count / maxZone) * 100)}%` }}>
+                            <span className="text-[9px] font-bold text-white">{z.count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Priority Breakdown</h2>
+                <div className="flex flex-col gap-3">
+                  {priorityBreakdown.map((p) => {
+                    const colors: Record<string, string> = { Critical: "#ef4444", High: "#ffca00", Medium: "#3b82f6", Low: "#6b7280" };
                     return (
-                      <tr key={issue.id} className="transition hover:bg-slate-50">
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/issues?id=${issue.id}`}
-                            className="font-mono text-xs font-semibold text-brand hover:underline"
-                          >
-                            {issue.reference_no}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-                                issue.kam_followup_at
-                                  ? "bg-emerald-100 text-emerald-800 ring-emerald-200"
-                                  : issue.kam_blocked
-                                  ? "bg-red-100 text-red-800 ring-red-200"
-                                  : "bg-slate-100 text-slate-500 ring-slate-200"
-                              }`}
-                            >
-                              {issue.kam_followup_at
-                                ? "Follow-up done"
-                                : issue.kam_blocked
-                                ? "BLOCKED"
-                                : "Pending"}
-                            </span>
-                            {issue.kam_lead_alerted && (
-                              <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800 ring-1 ring-inset ring-red-200">
-                                LEAD ALERTED
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <KamActionSlaBadge issue={issue} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="whitespace-pre-wrap text-xs text-slate-700">
-                            {issue.kam_justification || "—"}
-                          </div>
-                          {issue.kam_justification_count > 0 && (
-                            <div className="mt-1 text-[11px] text-slate-400">
-                              {issue.kam_justification_count} / {KAM_JUSTIFICATION_MAX} used
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_CLASS[issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
-                          >
-                            {issue.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {isJustifying ? (
-                            <div className="flex flex-col gap-2">
-                              <textarea
-                                value={kamJustification}
-                                onChange={(e) =>
-                                  setKamJustification(e.target.value)
-                                }
-                                rows={2}
-                                placeholder="Enter justification for not following up…"
-                                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() =>
-                                    giveKamJustification(issue.id, kamJustification)
-                                  }
-                                  disabled={
-                                    kamUpdatingId === issue.id ||
-                                    !kamJustification.trim()
-                                  }
-                                  className="rounded-lg bg-violet-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
-                                >
-                                  Submit
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setKamJustificationId(null);
-                                    setKamJustification("");
-                                  }}
-                                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-1.5">
-                              {!issue.kam_followup_at && (!kamSlaBreached || issue.kam_justification_count > 0) && (
-                                <KamActionBtn
-                                  label="Follow Up"
-                                  color="violet"
-                                  disabled={!canAct || kamUpdatingId === issue.id}
-                                  onClick={() => setKamAction(issue.id)}
-                                />
-                              )}
-                              {!issue.kam_followup_at &&
-                                !issue.kam_blocked &&
-                                issue.kam_justification_count <
-                                  KAM_JUSTIFICATION_MAX && (
-                                  <KamActionBtn
-                                    label="Justify"
-                                    color="amber"
-                                    onClick={() => {
-                                      setKamJustificationId(issue.id);
-                                      setKamJustification("");
-                                    }}
-                                  />
-                                )}
-                              {issue.kam_blocked && !canAct && (
-                                <span className="text-[11px] text-red-500">
-                                  Lead action required
-                                </span>
-                              )}
-                              {issue.kam_lead_alerted && canAct && (
-                                <span className="text-[11px] text-amber-600">
-                                  Lead alerted — awaiting action
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
+                      <div key={p.name}>
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="font-semibold text-slate-300">{p.name}</span>
+                          <span className="text-slate-500">{p.count} ({p.pct}%)</span>
+                        </div>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${p.pct}%`, background: colors[p.name] ?? "#6b7280" }}></div>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+                <div className="mt-4 border-t border-white/5 pt-4">
+                  <h3 className="mb-2 text-xs font-bold uppercase text-slate-500">Status Distribution</h3>
+                  <div className="space-y-1.5">
+                    {statusDist.map((s) => (
+                      <div key={s.name} className="flex items-center gap-2 text-xs">
+                        <span className="h-2 w-2 rounded-full" style={{ background: statusColors[s.name] ?? "#6b7280" }}></span>
+                        <span className="text-slate-400">{s.name}:</span>
+                        <span className="font-bold text-slate-200">{s.count}</span>
+                        <span className="text-slate-600">({s.pct}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Full Recent Issues Table */}
+            <div className="glass rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">All Issues</h2>
+                <span className="text-xs text-slate-500">{filteredIssues.length} total</span>
+              </div>
+              <div className="overflow-x-auto max-h-[500px]">
+                <table className="w-full text-sm glass-table">
+                  <thead className="sticky top-0">
+                    <tr className="border-b border-white/5 bg-slate-900/80">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-400">Ref</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400">Merchant</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400">Hub</th>
+                      <th className="px-3 py-3 text-left font-semibold text-slate-400">Category</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400">Priority</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400">Status</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400">SLA</th>
+                      <th className="px-3 py-3 text-center font-semibold text-slate-400">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredIssues.slice(0, 100).map((issue) => {
+                      const sla = getSlaState(issue);
+                      return (
+                        <tr key={issue.id} className="transition">
+                          <td className="px-4 py-3">
+                            <Link href={`/issues?id=${issue.id}`} className="font-mono text-xs font-semibold text-brand-400 hover:text-brand-300">
+                              {issue.reference_no}
+                            </Link>
+                          </td>
+                          <td className="px-3 py-3 text-slate-300">{issue.merchant_name}</td>
+                          <td className="px-3 py-3 text-slate-400">{issue.hub ?? "—"}</td>
+                          <td className="px-3 py-3">
+                            <div className="text-slate-300">{issue.category}</div>
+                            <div className="text-xs text-slate-500">{issue.subcategory}</div>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                              issue.priority === "Critical" ? "bg-red-500/15 text-red-400 ring-red-500/20"
+                              : issue.priority === "High" ? "bg-brand-500/15 text-brand-400 ring-brand-500/20"
+                              : issue.priority === "Medium" ? "bg-blue-500/15 text-blue-400 ring-blue-500/20"
+                              : "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                            }`}>{issue.priority}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                              STATUS_STYLE[issue.status] ?? "bg-slate-500/15 text-slate-400 ring-slate-500/20"
+                            }`}>{issue.status}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {sla.level === "ok" ? (
+                              <span className="text-[11px] text-slate-600">—</span>
+                            ) : (
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${SLA_STYLE[sla.level]}`}>
+                                ⚠ {sla.level === "critical" ? "CRITICAL" : "BREACH"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-slate-500">{formatDate(issue.updated_at)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
 
-        <p className="mt-4 text-xs text-slate-400">
-          Showing {filtered.length} of {issues.length} issues ·{" "}
-          {access?.teamName ? `${access.teamName} team` : "accessible teams"} ·{" "}
-          {access?.role === "Super Admin"
-            ? "Super Admin — all issues visible"
-            : access?.accessibleTeams && access.accessibleTeams.length > 1
-            ? `Seeing ${access.accessibleTeams.join(" + ")} team issues`
-            : "Team-scoped access"}
-        </p>
+        {/* ===== HUB PERFORMANCE TAB ===== */}
+        {activeTab === "hubs" && (
+          <div className="animate-slide-in space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-100">Hub Performance</h1>
+              <p className="text-sm text-slate-500">Hub-level issue metrics, SLA compliance, and performance scorecard</p>
+            </div>
 
-        {/* SLA alarm banner */}
-        {(slaCounts.breach > 0 || slaCounts.critical > 0) && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            ⚠ SLA alarm — {slaCounts.breach} issue(s) breached SLA (1st remarks due within 2h of escalation), {slaCounts.critical} critical (2nd remarks due within 1h of the 1st remarks).
+            {/* KPIs */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Hubs</div>
+                <div className="mt-1 text-3xl font-bold text-brand-400">{hubRows.length}</div>
+              </div>
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Issues</div>
+                <div className="mt-1 text-3xl font-bold text-slate-100">{filteredIssues.length}</div>
+              </div>
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SLA Breaches</div>
+                <div className="mt-1 text-3xl font-bold text-red-400">{hubSlaSplit.breached}</div>
+              </div>
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unjustified</div>
+                <div className="mt-1 text-3xl font-bold text-orange-400">{hubRows.reduce((s, r) => s + r.unjustified, 0)}</div>
+              </div>
+            </div>
+
+            {/* Needs Attention */}
+            {hubNeedsAttention.length > 0 && (
+              <div className="glass rounded-2xl border-amber-500/20">
+                <div className="flex items-center gap-2 border-b border-white/5 px-5 py-3">
+                  <span className="text-lg">⚠️</span>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-amber-400">Needs Attention</h2>
+                </div>
+                <div className="flex flex-wrap gap-2 p-4">
+                  {hubNeedsAttention.slice(0, 12).map((r) => (
+                    <span key={r.hub} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                      {r.hub}
+                      {r.slaBreached > 0 && <span className="text-red-400">{r.slaBreached} breach</span>}
+                      {r.cmBreach > 0 && <span className="text-orange-400">{r.cmBreach} CM</span>}
+                      {r.kamFailed > 0 && <span className="text-purple-400">{r.kamFailed} KAM</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Top 10 Hubs by Volume</h2>
+                <div className="space-y-2">
+                  {topHubsByVolume.map((r) => (
+                    <div key={r.hub} className="flex items-center gap-2">
+                      <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-400" title={r.hub}>{r.hub}</div>
+                      <div className="flex-1">
+                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (r.issues / maxVol) * 100)}%` }}>
+                            <span className="text-[10px] font-bold text-slate-900">{r.issues}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Hubs with Most SLA Breaches</h2>
+                <div className="space-y-2">
+                  {topBreachedHubs.map((r) => (
+                    <div key={r.hub} className="flex items-center gap-2">
+                      <div className="w-36 shrink-0 truncate text-xs font-medium text-slate-400" title={r.hub}>{r.hub}</div>
+                      <div className="flex-1">
+                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-red-600 to-red-400 px-2" style={{ width: `${Math.max(2, (r.slaBreached / maxHubBreach) * 100)}%` }}>
+                            <span className="text-[10px] font-bold text-white">{r.slaBreached}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Hub SLA Split</h2>
+                <div className="flex flex-col items-center gap-4">
+                  <Donut met={hubSlaSplit.met} breached={hubSlaSplit.breached} pending={hubSlaSplit.pending} total={hubSlaSplit.total} label="total" />
+                  <div className="flex flex-col gap-1 text-xs">
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-400">Met: <b className="text-slate-200">{hubSlaSplit.met}</b> ({pct(hubSlaSplit.met, hubSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500"></span><span className="text-slate-400">Breached: <b className="text-slate-200">{hubSlaSplit.breached}</b> ({pct(hubSlaSplit.breached, hubSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span className="text-slate-400">Pending: <b className="text-slate-200">{hubSlaSplit.pending}</b> ({pct(hubSlaSplit.pending, hubSlaSplit.total)}%)</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hub Scorecard Table */}
+            <div className="glass rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Hub Scorecard · {hubRows.length} hubs</h2>
+                <span className="text-xs text-slate-500">Updated {formatDateTime(new Date().toISOString())}</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm glass-table">
+                  <thead>
+                    <tr className="border-b border-white/5">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-500">HUB</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">ISSUES</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">HUB SLA%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">AVG REPLY</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">COMMENT%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">RESOLVED%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SCORE</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM FAILED</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">CM BREACH</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">UNJUSTIFIED</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hubRows.map((r) => (
+                      <tr key={r.hub} className="transition">
+                        <td className="px-4 py-2.5 font-medium text-slate-300">{r.hub}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-100">{r.issues}</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                            r.hubSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                            : r.hubSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                          }`}>{r.hubSlaPct}%</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-slate-400">{r.avgReply !== null ? `${r.avgReply.toFixed(1)}h` : "—"}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-300">{r.commentPct}%</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                            r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                            : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                          }`}>{r.resolvedPct}%</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                            r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                            : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                          }`}>{r.kamScore}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">{r.kamFailed > 0 ? <span className="font-bold text-purple-400">{r.kamFailed}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.cmBreach > 0 ? <span className="font-bold text-orange-400">{r.cmBreach}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.unjustified > 0 ? <span className="font-bold text-red-400">{r.unjustified}</span> : <span className="text-slate-600">0</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* OPS part — entered by OPS staff in the Google Sheet */}
-        <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                Operations (OPS) Follow-up
-              </h2>
-              <span className="text-[11px] text-slate-400">
-                Edited in Google Sheet “Central Issues Escalation” · Status synced with KAM status · SLA: 1st remarks in 2h, 2nd remarks in 1h
-              </span>
+        {/* ===== TEAM PERFORMANCE TAB ===== */}
+        {activeTab === "teams" && (
+          <div className="animate-slide-in space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-100">Team Performance</h1>
+              <p className="text-sm text-slate-500">KAM-level issue metrics, follow-up SLA compliance, and performance scorecard</p>
+            </div>
+
+            {/* KPIs */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total KAMs</div>
+                <div className="mt-1 text-3xl font-bold text-brand-400">{teamRows.length}</div>
+              </div>
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Issues</div>
+                <div className="mt-1 text-3xl font-bold text-slate-100">{filteredIssues.length}</div>
+              </div>
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">SLA Breaches</div>
+                <div className="mt-1 text-3xl font-bold text-red-400">{teamSlaSplit.breached}</div>
+              </div>
+              <div className="glass rounded-2xl p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unjustified</div>
+                <div className="mt-1 text-3xl font-bold text-orange-400">{teamRows.reduce((s, r) => s + r.unjustified, 0)}</div>
+              </div>
+            </div>
+
+            {/* Needs Attention */}
+            {teamNeedsAttention.length > 0 && (
+              <div className="glass rounded-2xl border-amber-500/20">
+                <div className="flex items-center gap-2 border-b border-white/5 px-5 py-3">
+                  <span className="text-lg">⚠️</span>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-amber-400">Needs Attention</h2>
+                </div>
+                <div className="flex flex-wrap gap-2 p-4">
+                  {teamNeedsAttention.slice(0, 12).map((r) => (
+                    <span key={r.kamId} className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                      {r.kamName}
+                      {r.slaBreached > 0 && <span className="text-red-400">{r.slaBreached} breach</span>}
+                      {r.cmBreach > 0 && <span className="text-orange-400">{r.cmBreach} CM</span>}
+                      {r.kamFailed > 0 && <span className="text-purple-400">{r.kamFailed} KAM</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">Top 10 KAMs by Volume</h2>
+                <div className="space-y-2">
+                  {topTeamsByVolume.map((r) => (
+                    <div key={r.kamId} className="flex items-center gap-2">
+                      <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-400" title={r.kamName}>{r.kamName}</div>
+                      <div className="flex-1">
+                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-brand-600 to-brand-400 px-2" style={{ width: `${Math.max(2, (r.issues / maxTeamVol) * 100)}%` }}>
+                            <span className="text-[10px] font-bold text-slate-900">{r.issues}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">KAMs with Most SLA Breaches</h2>
+                <div className="space-y-2">
+                  {topBreachedTeams.map((r) => (
+                    <div key={r.kamId} className="flex items-center gap-2">
+                      <div className="w-40 shrink-0 truncate text-xs font-medium text-slate-400" title={r.kamName}>{r.kamName}</div>
+                      <div className="flex-1">
+                        <div className="h-5 overflow-hidden rounded bg-white/5">
+                          <div className="flex h-full items-center justify-end rounded bg-gradient-to-r from-red-600 to-red-400 px-2" style={{ width: `${Math.max(2, (r.slaBreached / maxTeamBreach) * 100)}%` }}>
+                            <span className="text-[10px] font-bold text-white">{r.slaBreached}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-5">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">KAM SLA Split</h2>
+                <div className="flex flex-col items-center gap-4">
+                  <Donut met={teamSlaSplit.met} breached={teamSlaSplit.breached} pending={teamSlaSplit.pending} total={teamSlaSplit.total} label="total" />
+                  <div className="flex flex-col gap-1 text-xs">
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span><span className="text-slate-400">Met: <b className="text-slate-200">{teamSlaSplit.met}</b> ({pct(teamSlaSplit.met, teamSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500"></span><span className="text-slate-400">Breached: <b className="text-slate-200">{teamSlaSplit.breached}</b> ({pct(teamSlaSplit.breached, teamSlaSplit.total)}%)</span></div>
+                    <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-500"></span><span className="text-slate-400">Pending: <b className="text-slate-200">{teamSlaSplit.pending}</b> ({pct(teamSlaSplit.pending, teamSlaSplit.total)}%)</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* KAM Scorecard Table */}
+            <div className="glass rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">KAM Scorecard · {teamRows.length} KAMs</h2>
+                <span className="text-xs text-slate-500">Updated {formatDateTime(new Date().toISOString())}</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm glass-table">
+                  <thead>
+                    <tr className="border-b border-white/5">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-500">KAM</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">ISSUES</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SLA%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">AVG FOLLOWUP</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">COMMENT%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">RESOLVED%</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM SCORE</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">KAM FAILED</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">CM BREACH</th>
+                      <th className="px-3 py-3 text-right font-semibold text-slate-500">UNJUSTIFIED</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamRows.map((r) => (
+                      <tr key={r.kamId} className="transition">
+                        <td className="px-4 py-2.5 font-medium text-slate-300">{r.kamName}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-100">{r.issues}</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                            r.kamSlaPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                            : r.kamSlaPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                          }`}>{r.kamSlaPct}%</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-slate-400">{r.avgFollowup !== null ? `${r.avgFollowup.toFixed(1)}h` : "—"}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-slate-300">{r.commentPct}%</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                            r.resolvedPct >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                            : r.resolvedPct >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                          }`}>{r.resolvedPct}%</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${
+                            r.kamScore >= 80 ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/20"
+                            : r.kamScore >= 50 ? "bg-yellow-500/15 text-yellow-400 ring-yellow-500/20"
+                            : "bg-red-500/15 text-red-400 ring-red-500/20"
+                          }`}>{r.kamScore}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">{r.kamFailed > 0 ? <span className="font-bold text-purple-400">{r.kamFailed}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.cmBreach > 0 ? <span className="font-bold text-orange-400">{r.cmBreach}</span> : <span className="text-slate-600">0</span>}</td>
+                        <td className="px-3 py-2.5 text-right">{r.unjustified > 0 ? <span className="font-bold text-red-400">{r.unjustified}</span> : <span className="text-slate-600">0</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-3">Reference</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">SLA</th>
-                  <th className="px-4 py-3">Ops Remark 1</th>
-                  <th className="px-4 py-3">Ops Remark 2</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
-                      Loading…
-                    </td>
-                  </tr>
-                )}
-                {!loading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
-                      No issues match your filters.
-                    </td>
-                  </tr>
-                )}
-                {filtered.map((issue) => (
-                  <tr key={issue.id} className="transition hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/issues?id=${issue.id}`}
-                        className="font-mono text-xs font-semibold text-brand hover:underline"
-                      >
-                        {issue.reference_no}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition ${OPS_STATUS_STYLE[issue.ops_status ?? issue.status] ?? "bg-slate-100 text-slate-700 ring-slate-200"}`}
-                      >
-                        {issue.ops_status ?? issue.status ?? "Open"}
-                      </span>
-                      <div className="mt-1 text-[11px] text-slate-400">
-                        {issue.ops_status_at ? `Set ${formatDateTime(issue.ops_status_at)}` : "—"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <SlaBadge issue={issue} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="whitespace-pre-wrap text-xs text-slate-700">
-                        {issue.ops_remark1 || "—"}
-                      </div>
-                      <div className="mt-1 text-[11px] text-slate-400">
-                        {issue.ops_remark1_at ? formatDateTime(issue.ops_remark1_at) : "—"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="whitespace-pre-wrap text-xs text-slate-700">
-                        {issue.ops_remark2 || "—"}
-                      </div>
-                      <div className="mt-1 text-[11px] text-slate-400">
-                        {issue.ops_remark2_at ? formatDateTime(issue.ops_remark2_at) : "—"}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        )}
+
+        {/* Footer */}
+        <div className="mt-6 flex items-center justify-between text-xs text-slate-600">
+          <span>CarryBee · Internal use</span>
+          <span>{filteredIssues.length} issues · {hubRows.length} hubs · {teamRows.length} KAMs</span>
+        </div>
+      </div>
+
+      {/* Justification Modal */}
+      {justifyTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setJustifyTarget(null)}>
+          <div className="glass w-full max-w-md rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-lg font-bold text-slate-100">
+              {justifyTarget.type === "kam" ? "KAM SLA Breach" : "CM SLA Breach"} — Justification Required
+            </h2>
+            <p className="mb-4 text-sm text-slate-400">
+              Explain why the SLA was breached. This will allow the action to proceed.
+            </p>
+            <textarea
+              value={justifyText}
+              onChange={(e) => setJustifyText(e.target.value)}
+              className="glass-input w-full rounded-xl p-3 text-sm text-slate-200 placeholder:text-slate-600"
+              placeholder="Enter justification..."
+              rows={4}
+              autoFocus
+            />
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setJustifyTarget(null)}
+                className="glass-input flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleJustification(justifyTarget.issueId, justifyTarget.type)}
+                disabled={!justifyText.trim() || updatingId === justifyTarget.issueId}
+                className="flex-1 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-400 disabled:opacity-50"
+              >
+                Submit Justification
+              </button>
+            </div>
           </div>
         </div>
-      </main>
-    </>
-  );
-}
-
-const STATUS_CLASS: Record<string, string> = {
-  Open: "bg-amber-100 text-amber-800 ring-amber-200",
-  "In Progress": "bg-blue-100 text-blue-800 ring-blue-200",
-  Resolved: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  "Not Remarks": "bg-sky-100 text-sky-800 ring-sky-200",
-  Improper: "bg-red-100 text-red-800 ring-red-200",
-};
-
-function SlaBadge({ issue }: { issue: Issue }) {
-  const s = getSlaState(issue);
-  if (s.level === "ok") {
-    return <span className="text-[11px] text-slate-400">—</span>;
-  }
-  return (
-    <div>
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${SLA_STYLE[s.level]}`}
-      >
-        ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
-      </span>
-      {s.deadline && (
-        <div className="mt-1 text-[11px] text-slate-400">
-          Deadline {formatDateTime(s.deadline.toISOString())}
-        </div>
       )}
-    </div>
-  );
-}
-
-function CmActionSlaBadge({ issue }: { issue: Issue }) {
-  const s = getCmActionSlaState(issue);
-  if (s.level === "ok") {
-    return <span className="text-[11px] text-slate-400">—</span>;
-  }
-  return (
-    <div>
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
-          s.level === "critical"
-            ? "bg-red-100 text-red-800 ring-red-200"
-            : "bg-amber-100 text-amber-800 ring-amber-200"
-        }`}
-      >
-        ⚠ {s.level === "critical" ? "CRITICAL" : "SLA BREACH"}
-      </span>
-      {s.deadline && (
-        <div className="mt-1 text-[11px] text-slate-400">
-          Deadline {formatDateTime(s.deadline.toISOString())}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CmActionBtn({
-  label,
-  color,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  color: "violet" | "blue" | "sky" | "emerald" | "amber";
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  const colors: Record<string, string> = {
-    violet: "bg-violet-100 text-violet-800 ring-violet-200 hover:bg-violet-200",
-    blue: "bg-blue-100 text-blue-800 ring-blue-200 hover:bg-blue-200",
-    sky: "bg-sky-100 text-sky-800 ring-sky-200 hover:bg-sky-200",
-    emerald:
-      "bg-emerald-100 text-emerald-800 ring-emerald-200 hover:bg-emerald-200",
-    amber: "bg-amber-100 text-amber-800 ring-amber-200 hover:bg-amber-200",
-  };
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-lg px-3 py-1 text-xs font-semibold ring-1 ring-inset transition disabled:opacity-40 ${colors[color]}`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function KamActionSlaBadge({ issue }: { issue: Issue }) {
-  const s = getKamActionSlaState(issue);
-  if (s.level === "ok" && !issue.kam_followup_at) {
-    return <span className="text-[11px] text-emerald-500">✓ On track</span>;
-  }
-  if (issue.kam_followup_at) {
-    return <span className="text-[11px] text-emerald-500">✓ Done</span>;
-  }
-  return (
-    <div>
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset ${
-          s.level === "breach"
-            ? "bg-amber-100 text-amber-800 ring-amber-200"
-            : "bg-emerald-100 text-emerald-800 ring-emerald-200"
-        }`}
-      >
-        ⚠ SLA BREACH
-      </span>
-      {s.deadline && (
-        <div className="mt-1 text-[11px] text-slate-400">
-          Deadline {formatDateTime(s.deadline.toISOString())}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function KamActionBtn({
-  label,
-  color,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  color: "violet" | "amber";
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  const colors: Record<string, string> = {
-    violet: "bg-violet-100 text-violet-800 ring-violet-200 hover:bg-violet-200",
-    amber: "bg-amber-100 text-amber-800 ring-amber-200 hover:bg-amber-200",
-  };
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-lg px-3 py-1 text-xs font-semibold ring-1 ring-inset transition disabled:opacity-40 ${colors[color]}`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "slate" | "amber" | "blue" | "emerald" | "red";
-}) {
-  const tones: Record<typeof tone, string> = {
-    slate: "border-slate-200 text-slate-700",
-    amber: "border-amber-200 text-amber-700",
-    blue: "border-blue-200 text-blue-700",
-    emerald: "border-emerald-200 text-emerald-700",
-    red: "border-red-200 text-red-700",
-  };
-  return (
-    <div className={`rounded-2xl border bg-white p-5 shadow-sm ${tones[tone]}`}>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
-      <div className="mt-1 text-sm font-medium">{label}</div>
-    </div>
-  );
-}
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-  disabled?: boolean;
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </label>
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-400"
-      >
-        <option value="">All</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

@@ -14,7 +14,8 @@
   --color-brand-900: #7a6600;
 }
 
-/* Dark mode CSS variables */
+/* ===== Glassmorphism Design System ===== */
+
 :root {
   --bg-primary: #f1f5f9;
   --bg-secondary: #ffffff;
@@ -27,14 +28,131 @@
 }
 
 .dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-card: #1e293b;
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #131826;
+  --bg-card: #131826;
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
-  --border-color: #334155;
-  --border-color-light: #1e293b;
+  --border-color: #1e293b;
+  --border-color-light: #131826;
+}
+
+/* Glass card — works in both light and dark */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 4px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Gradient mesh background for dashboard */
+.dashboard-bg {
+  background:
+    radial-gradient(at 0% 0%, rgba(255, 202, 0, 0.08) 0px, transparent 50%),
+    radial-gradient(at 98% 2%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+    var(--bg-primary);
+}
+
+.dark .dashboard-bg {
+  background:
+    radial-gradient(at 0% 0%, rgba(255, 202, 0, 0.06) 0px, transparent 45%),
+    radial-gradient(at 98% 2%, rgba(99, 102, 241, 0.10) 0px, transparent 45%),
+    radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.06) 0px, transparent 45%),
+    var(--bg-primary);
+}
+
+/* Glass nav */
+.glass-nav {
+  background: rgba(10, 14, 26, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Glass tab button */
+.glass-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.glass-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.glass-tab-active {
+  background: rgba(255, 202, 0, 0.12);
+  border-color: rgba(255, 202, 0, 0.25);
+  color: #ffca00;
+}
+
+/* Glow effect for brand accents */
+.glow-brand {
+  box-shadow: 0 0 24px rgba(255, 202, 0, 0.3), 0 0 48px rgba(255, 202, 0, 0.1);
+}
+
+.glow-brand-sm {
+  box-shadow: 0 0 12px rgba(255, 202, 0, 0.25);
+}
+
+/* Animated gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #ffca00 0%, #ffdf38 50%, #ffca00 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Subtle pulse for live indicators */
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Slide transition for tab content */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out both;
+}
+
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
 }
 
 html,
@@ -54,20 +172,20 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: rgba(255, 255, 255, 0.2);
   background-clip: padding-box;
   border: 2px solid transparent;
 }
@@ -87,18 +205,29 @@ body {
   animation: fadeUp 0.35s ease-out both;
 }
 
-/* Card backgrounds in dark mode */
-.dark .rounded-2xl {
-  background-color: var(--bg-card);
-  border-color: var(--border-color);
+/* Table styles in glass */
+.glass-table thead {
+  background: rgba(255, 255, 255, 0.03);
+}
+.glass-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.glass-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
-/* Table headers in dark mode */
-.dark thead {
-  background-color: var(--bg-secondary);
+/* Input styling for glass */
+.glass-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
 }
-
-/* Hover states in dark mode */
-.dark .hover\:bg-slate-50:hover {
-  background-color: rgba(51, 65, 85, 0.5);
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 202, 0, 0.4);
+  outline: none;
+}
+.glass-input option {
+  background: #131826;
+  color: #f1f5f9;
 }
