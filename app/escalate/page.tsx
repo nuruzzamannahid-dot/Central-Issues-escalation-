@@ -32,8 +32,11 @@ export default function EscalatePage() {
   const [catOpen, setCatOpen] = useState(false);
   const [subSearch, setSubSearch] = useState("");
   const [subOpen, setSubOpen] = useState(false);
+  const [hubSearch, setHubSearch] = useState("");
+  const [hubOpen, setHubOpen] = useState(false);
   const catRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLDivElement>(null);
+  const hubRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -76,6 +79,7 @@ export default function EscalatePage() {
     function handleClick(e: MouseEvent) {
       if (catRef.current && !catRef.current.contains(e.target as Node)) setCatOpen(false);
       if (subRef.current && !subRef.current.contains(e.target as Node)) setSubOpen(false);
+      if (hubRef.current && !hubRef.current.contains(e.target as Node)) setHubOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -85,6 +89,12 @@ export default function EscalatePage() {
     () => hubs.filter((h) => h.zone_code === zone),
     [hubs, zone]
   );
+
+  const filteredHubs = useMemo(() => {
+    const q = hubSearch.trim().toLowerCase();
+    if (!q) return zoneHubs;
+    return zoneHubs.filter((h) => h.name.toLowerCase().includes(q));
+  }, [zoneHubs, hubSearch]);
 
   const uniqueCategories = useMemo(() => {
     const seen = new Set<string>();
@@ -140,6 +150,12 @@ export default function EscalatePage() {
     if (data && data.priority) setPriority(data.priority);
     setSubOpen(false);
     setSubSearch("");
+  }
+
+  function selectHub(name: string) {
+    setHub(name);
+    setHubOpen(false);
+    setHubSearch("");
   }
 
   async function submit(e: React.FormEvent) {
@@ -260,26 +276,37 @@ export default function EscalatePage() {
           </section>
 
           {/* Location */}
-          <section className="glass rounded-2xl p-6">
+          <section className="glass relative z-20 rounded-2xl p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Zone & Hub</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Zone *">
-                <select value={zone} onChange={(e) => { setZone(e.target.value); setHub(""); }} className="input">
+                <select value={zone} onChange={(e) => { setZone(e.target.value); setHub(""); setHubSearch(""); setHubOpen(false); }} className="input">
                   <option value="">Select zone…</option>
                   {zones.map((z) => <option key={z.code} value={z.code}>{z.name}</option>)}
                 </select>
               </Field>
-              <Field label="Hub *">
-                <select value={hub} onChange={(e) => setHub(e.target.value)} disabled={!zone} className="input disabled:bg-surface-muted disabled:text-muted">
-                  <option value="">Select hub…</option>
-                  {zoneHubs.map((h) => <option key={h.name} value={h.name}>{h.name}</option>)}
-                </select>
-              </Field>
+              <div ref={hubRef}>
+                <Field label="Hub *">
+                  <Combobox
+                    open={hubOpen}
+                    onToggle={() => setHubOpen(!hubOpen)}
+                    search={hubSearch}
+                    onSearch={setHubSearch}
+                    value={hub}
+                    options={filteredHubs.map((h) => h.name)}
+                    onSelect={selectHub}
+                    placeholder={zone ? "Search hubs…" : "Select zone first"}
+                    disabled={!zone}
+                    searchPlaceholder="Search hubs…"
+                    emptyText="No hubs found"
+                  />
+                </Field>
+              </div>
             </div>
           </section>
 
           {/* Classification */}
-          <section className="glass rounded-2xl p-6">
+          <section className="glass relative z-10 rounded-2xl p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Issue Classification</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Searchable Category Dropdown */}
@@ -429,6 +456,8 @@ function Combobox({
   onSelect,
   placeholder,
   disabled,
+  searchPlaceholder = "Search…",
+  emptyText = "No results",
 }: {
   id?: string;
   open: boolean;
@@ -440,6 +469,8 @@ function Combobox({
   onSelect: (v: string) => void;
   placeholder: string;
   disabled?: boolean;
+  searchPlaceholder?: string;
+  emptyText?: string;
 }) {
   return (
     <div className="relative">
@@ -464,15 +495,18 @@ function Combobox({
           <div className="mb-2">
             <input
               autoFocus
+              type="search"
+              autoComplete="off"
+              aria-label={searchPlaceholder}
               value={search}
               onChange={(e) => onSearch(e.target.value)}
-              placeholder="Search…"
+              placeholder={searchPlaceholder}
               className="glass-input w-full px-3 py-2 text-sm"
             />
           </div>
           <div className="max-h-56 overflow-y-auto space-y-1">
             {options.length === 0 && (
-              <div className="px-3 py-2 text-center text-sm text-muted">No results</div>
+              <div className="px-3 py-2 text-center text-sm text-muted">{emptyText}</div>
             )}
             {options.map((opt) => (
               <button
