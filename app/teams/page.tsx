@@ -8,6 +8,8 @@ import {
   formatDateTime,
   supabase,
   getUserAccess,
+  getVisibleKamIds,
+  isIssueVisible,
   STATUSES,
   STATUS_STYLE,
   PRIORITY_STYLE,
@@ -97,7 +99,9 @@ export default function TeamsPage() {
       ]);
 
       if (!mounted) return;
-      let loaded = issueRes.data ?? [];
+      const visible = await getVisibleKamIds(acc);
+      if (!mounted) return;
+      let loaded = (issueRes.data ?? []).filter((i) => isIssueVisible(i.kam_id, visible));
       loaded = await autoSyncStatusFromRemarks(loaded);
       setIssues(loaded);
       setKams(kamRes.data ?? []);

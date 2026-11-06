@@ -50,7 +50,9 @@ export default function EscalatePage() {
       const email = session.user.email ?? "";
       setUser({ email });
 
-      const acc = await getUserAccess(email);
+      // Honour the role picked at login (an account can hold several accesses).
+      const savedRole = sessionStorage.getItem("kam_access_role");
+      const acc = await getUserAccess(email, savedRole ?? undefined);
       if (!acc) {
         setDenied(true);
         setLoading(false);

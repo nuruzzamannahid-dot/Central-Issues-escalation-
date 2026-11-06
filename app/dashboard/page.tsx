@@ -14,6 +14,9 @@ import {
   getCmActionSlaState,
   getUserAccess,
   getKamIdsForTeams,
+  getVisibleKamIds,
+  getIssueActionMode,
+  isIssueVisible,
   canUseCmAction,
   getKamActionSlaState,
   canUseKamAction,
@@ -59,6 +62,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [ibKamIds, setIbKamIds] = useState<string[]>([]);
+  const [visibleKamIds, setVisibleKamIds] = useState<string[] | null>(null);
   // Filters
   const [zoneFilter, setZoneFilter] = useState("All");
   const [hubFilter, setHubFilter] = useState("All");
@@ -157,6 +161,12 @@ export default function DashboardPage() {
       if (!mounted) return;
       let loadedIssues = issueRes.data ?? [];
 
+      // Members only see their own issues; CM also sees every IB issue.
+      const visible = await getVisibleKamIds(acc);
+      if (!mounted) return;
+      setVisibleKamIds(visible);
+      loadedIssues = loadedIssues.filter((i) => isIssueVisible(i.kam_id, visible));
+
       // Auto-sync status from remarks: if ops_remark1 exists but status is "Open",
       // auto-set to "In Progress". This handles Google Sheet syncs that don't update status.
       loadedIssues = await autoSyncStatusFromRemarks(loadedIssues);
@@ -199,10 +209,21 @@ export default function DashboardPage() {
     return ["All", ...Array.from(h).sort()];
   }, [issues]);
 
-  const teamNames = useMemo(() => {
-    const names = new Set(kams.map((k) => k.full_name).filter(Boolean));
-    return ["All", ...Array.from(names).sort()];
+  const kamNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    kams.forEach((k) => { if (k.full_name) map[k.id] = k.full_name; });
+    return map;
   }, [kams]);
+
+  const teamNames = useMemo(() => {
+    const names = new Set(
+      kams
+        .filter((k) => isIssueVisible(k.id, visibleKamIds))
+        .map((k) => k.full_name)
+        .filter(Boolean)
+    );
+    return ["All", ...Array.from(names).sort()];
+  }, [kams, visibleKamIds]);
 
   const filteredIssues = useMemo(() => {
     return issues.filter((i) => {
@@ -521,7 +542,9 @@ export default function DashboardPage() {
     onKamAction: (id: string) => void;
     onJustify: (type: "kam" | "cm") => void;
   }) {
-    const showCm = canCm && issue.zone && ibKamIds.includes(issue.kam_id);
+    const isIbIssue = ibKamIds.includes(issue.kam_id);
+    const mode = getIssueActionMode(access?.role ?? "", access?.teamName ?? "", isIbIssue);
+    const showCm = mode === "cm" && canCm && !!issue.zone;
     let cmBtn = null;
     if (showCm) {
       if (cmSla.level !== "ok") {
@@ -559,7 +582,7 @@ export default function DashboardPage() {
     }
 
     let kamBtn = null;
-    if (canKam) {
+    if (mode === "kam" && canKam) {
       if (kamSla.level !== "ok") {
         kamBtn = (
           <button
@@ -886,7 +909,7 @@ export default function DashboardPage() {
                   <thead>
                     <tr className="border-b border-token-light">
                       <th className="px-4 py-3 text-left font-semibold text-muted">Ref</th>
-                      <th className="px-3 py-3 text-left font-semibold text-muted">Merchant</th>
+                      <th className="px-3 py-3 text-left font-semibold text-muted">Escalated by</th>
                       <th className="px-3 py-3 text-left font-semibold text-muted">Category</th>
                       <th className="px-3 py-3 text-center font-semibold text-muted">Priority</th>
                       <th className="px-3 py-3 text-center font-semibold text-muted">Status</th>
@@ -911,7 +934,7 @@ export default function DashboardPage() {
                               {issue.reference_no}
                             </Link>
                           </td>
-                          <td className="px-3 py-3 text-secondary">{issue.merchant_name}</td>
+                          <td className="px-3 py-3 text-secondary">{kamNameById[issue.kam_id] ?? "—"}</td>
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-2">
                               <span className="text-secondary">{issue.category}</span>
@@ -1142,7 +1165,7 @@ export default function DashboardPage() {
                   <thead className="sticky top-0">
                     <tr className="border-b border-token-light glass-table-head">
                       <th className="px-4 py-3 text-left font-semibold text-muted">Ref</th>
-                      <th className="px-3 py-3 text-left font-semibold text-muted">Merchant</th>
+                      <th className="px-3 py-3 text-left font-semibold text-muted">Escalated by</th>
                       <th className="px-3 py-3 text-left font-semibold text-muted">Hub</th>
                       <th className="px-3 py-3 text-left font-semibold text-muted">Category</th>
                       <th className="px-3 py-3 text-center font-semibold text-muted">Priority</th>
@@ -1162,7 +1185,7 @@ export default function DashboardPage() {
                               {issue.reference_no}
                             </Link>
                           </td>
-                          <td className="px-3 py-3 text-secondary">{issue.merchant_name}</td>
+                          <td className="px-3 py-3 text-secondary">{kamNameById[issue.kam_id] ?? "—"}</td>
                           <td className="px-3 py-3 text-muted">{issue.hub ?? "—"}</td>
                           <td className="px-3 py-3">
                             <div className="text-secondary">{issue.category}</div>

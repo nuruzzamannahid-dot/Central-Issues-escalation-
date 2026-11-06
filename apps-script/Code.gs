@@ -20,7 +20,7 @@
  *   • syncIssues() — appends new issues to the hidden master tab (every 5 min).
  *
  * Sheet layout (all tabs):
- *   A Reference No | B KAM | C Zone | D Hub | E Category | F Subcategory
+ *   A Reference No | B KAM (name) | C Zone | D Hub | E Category | F Subcategory
  *   G Priority | H Parcel ID | I Description | J Status | K Ops Remark 1
  *   L Remark 1 At | M Ops Remark 2 | N Remark 2 At
  *
@@ -191,7 +191,7 @@ function syncZones() {
 
   var issues = fetchIssues();
   if (!issues) return;
-  var kamEmail = fetchKamEmails();
+  var kamName = fetchKamNames();
 
   // Group issues by zone (case-insensitive zone match).
   var issuesByZone = {};
@@ -225,7 +225,7 @@ function syncZones() {
       if (!ref) return;
       inTab[ref] = true;
       var row = byRef[ref];
-      var values = buildRow(issue, kamEmail);
+      var values = buildRow(issue, kamName);
       if (row) {
         updates.push({ row: row, values: values });
       } else {
@@ -289,7 +289,7 @@ function syncIssues() {
 
   var existing = getExistingReferences(sheet);
 
-  var kamEmail = fetchKamEmails();
+  var kamName = fetchKamNames();
   var issues = fetchIssues();
   if (!issues) return;
 
@@ -297,7 +297,7 @@ function syncIssues() {
   issues.forEach(function (issue) {
     var ref = String(issue.reference_no || "").trim();
     if (!ref || existing[ref]) return;
-    toAdd.push(buildRow(issue, kamEmail));
+    toAdd.push(buildRow(issue, kamName));
   });
 
   if (toAdd.length === 0) {
@@ -377,10 +377,10 @@ function syncOpsToSupabase() {
   return "Patched " + patched + " issue(s) from the sheet";
 }
 
-function buildRow(issue, kamEmail) {
+function buildRow(issue, kamName) {
   return [
     String(issue.reference_no || ""),
-    kamEmail[String(issue.kam_id)] || "",
+    kamName[String(issue.kam_id)] || "",
     issue.zone || "",
     issue.hub || "",
     issue.category || "",
@@ -415,13 +415,14 @@ function fetchIssues() {
   );
 }
 
-function fetchKamEmails() {
+/** Column B shows the member's NAME (falls back to email if no name on file). */
+function fetchKamNames() {
   var kams = fetchJson(
-    SUPABASE_URL + "/rest/v1/kams?select=id,email&limit=1000"
+    SUPABASE_URL + "/rest/v1/kams?select=id,full_name,email&limit=1000"
   );
   var map = {};
   (kams || []).forEach(function (k) {
-    map[String(k.id)] = k.email || "";
+    map[String(k.id)] = k.full_name || k.email || "";
   });
   return map;
 }

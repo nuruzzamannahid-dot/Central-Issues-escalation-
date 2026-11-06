@@ -138,3 +138,37 @@ to the live project). It is additive — no existing column, policy or trigger i
 Issues that existed before the log was enabled are backfilled from the timestamps already
 stored on the issue row; those entries are tagged *from saved record*, and where no exact
 time was ever stored, *time approximate*.
+
+## Who sees what, and who acts
+
+**Visibility** (applied on Dashboard, Issues, Analytics, Hubs and Teams):
+
+| Login | Sees |
+|---|---|
+| Member | Only the issues they escalated themselves |
+| CM team (Member or Lead) | Their own issues **plus every IB issue** — they work those |
+| Team Lead | Their whole team's issues |
+| Super Admin | Everything |
+
+**Actions on an issue:**
+
+| Team | IB issue | Any other issue |
+|---|---|---|
+| IB | View only — no follow-up, no status edit, no delete | View only |
+| CM | **CM Action** (Pick Up → 1st → 2nd → 3rd, repeatable) | **KAM Action** (Follow Up, repeatable) |
+| Other teams | — | **KAM Action** |
+
+IB members raise issues and then watch them: the issue page shows a **View only** panel
+instead of the update box, and the CM team picks the issue up. Every login can still read
+the full activity log for any issue it can see.
+
+An account holding several roles (e.g. Super Admin + CM) uses the role chosen at login on
+every page, including the issue detail page.
+
+**Dashboard columns:** the Merchant column was replaced by **Escalated by**, showing the
+member's name. Merchant details remain on the issue page and the escalate form.
+
+**OPS Google Sheet:** column B (`KAM`) now prints the member's **name** instead of their
+email. To apply it, paste the updated `apps-script/Code.gs` into the sheet's Apps Script
+editor and save; the next `syncZones()` run (every 5 minutes) rewrites column B for existing
+rows, so no manual cleanup is needed.

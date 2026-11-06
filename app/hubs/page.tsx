@@ -8,6 +8,8 @@ import {
   formatDateTime,
   supabase,
   getUserAccess,
+  getVisibleKamIds,
+  isIssueVisible,
   getSlaState,
   STATUSES,
   STATUS_STYLE,
@@ -98,7 +100,9 @@ export default function HubsPage() {
         .limit(2000);
 
       if (!mounted) return;
-      let loaded = issueData ?? [];
+      const visible = await getVisibleKamIds(acc);
+      if (!mounted) return;
+      let loaded = (issueData ?? []).filter((i) => isIssueVisible(i.kam_id, visible));
           loaded = await autoSyncStatusFromRemarks(loaded);
           setIssues(loaded);
       setLoading(false);

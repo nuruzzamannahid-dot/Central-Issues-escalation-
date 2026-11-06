@@ -276,8 +276,25 @@ export const KAM_ACTION_STYLE: Record<string, string> = {
 /** Returns true if the user can use the KAM Action section.
  *  KAM Action applies to all issues — visible to everyone with issue access. */
 export function canUseKamAction(role: string, teamName: string): boolean {
-  // All team members, Team Leads, and Super Admin can use KAM Action
-  return role === "Super Admin" || role === "Team Lead" || role === "Member" || role === "CM";
+  if (role === "Super Admin") return true;
+  // IB escalates and watches only — the CM team works their issues.
+  if (teamName === "IB") return false;
+  return role === "Team Lead" || role === "Member" || role === "CM";
+}
+
+/** Which action panel a user gets on a given issue.
+ *  IB issues are worked by the CM team (CM Action); everything else uses
+ *  KAM Action. IB members themselves are read-only. */
+export type IssueActionMode = "cm" | "kam" | "view";
+
+export function getIssueActionMode(
+  role: string,
+  teamName: string,
+  isIbIssue: boolean
+): IssueActionMode {
+  if (role !== "Super Admin" && teamName === "IB") return "view";
+  if (isIbIssue) return canUseCmAction(role, teamName) ? "cm" : "view";
+  return canUseKamAction(role, teamName) ? "kam" : "view";
 }
 
 /** Returns true if the user can perform KAM actions on an issue.
@@ -331,8 +348,13 @@ export function formatDateTime(iso: string | null): string {
  *  Rules:                                                                 *
  *    • Super Admin → see / edit ALL issues                               *
  *    • Team Lead   → see their team's members' issues                    *
- *    • CM Member   → see CM + IB members' issues                         *
- *    • Other Member→ see their own team's issues                         *
+ *    • CM team     → also see every IB issue (they work those)           *
+ *    • Other Member→ see ONLY the issues they escalated themselves       *
+ *                                                                         *
+ *  Actions:                                                               *
+ *    • IB members  → escalate + view only (no follow-up, no status edit) *
+ *    • CM team     → IB issues = CM Action, other issues = KAM Action    *
+ *    • Other teams → KAM Action on their own issues                      *
  * ----------------------------------------------------------------------- */
 
 export type TeamMember = {
@@ -352,7 +374,7 @@ export type UserAccess = {
   role: string;
   teamName: string;
   accessibleTeams: string[]; // team names the user can see issues for
-  canEscalate: boolean; // Super Admin or Team Lead
+  canEscalate: boolean; // Super Admin, Team Lead, or IB member
 };
 
 /** Returns the list of team names a user can see issues for. */
@@ -404,7 +426,7 @@ export async function getUserAccess(
     role: accRole,
     teamName: member.team_name,
     accessibleTeams,
-    canEscalate: accRole === "Super Admin" || accRole === "Team Lead",
+    canEscalate: accRole === "Super Admin" || accRole === "Team Lead" || member.team_name === "IB",
   };
 }
 
@@ -449,6 +471,44 @@ export function canPerformCmAction(
 }
 
 /** Fetches the list of KAM ids whose emails belong to the given teams. */
+/** The kams rows that belong to this login (a person can own more than one). */
+export async function getOwnKamIds(email: string): Promise<string[]> {
+  if (!email) return [];
+  const { data } = await supabase.from("kams").select("id").eq("email", email);
+  return (data ?? []).map((k) => k.id as string);
+}
+
+/** Which issues a login may see, expressed as kam ids.
+ *  null = no restriction (Super Admin).
+ *  • Member      → only what they escalated
+ *  • CM team     → their own + every IB issue (they give CM Action on those)
+ *  • Team Lead   → their whole team (+ IB for the CM lead)
+ */
+export async function getVisibleKamIds(acc: UserAccess): Promise<string[] | null> {
+  if (acc.role === "Super Admin" || acc.accessibleTeams.includes("__ALL__")) return null;
+
+  const own = await getOwnKamIds(acc.email);
+  const uniq = (ids: string[]) => Array.from(new Set(ids));
+
+  if (acc.role === "Team Lead") {
+    const teamIds = await getKamIdsForTeams([acc.teamName]);
+    const ibIds = acc.teamName === "CM" ? await getKamIdsForTeams(["IB"]) : [];
+    return uniq([...teamIds, ...ibIds, ...own]);
+  }
+
+  if (acc.teamName === "CM") {
+    const ibIds = await getKamIdsForTeams(["IB"]);
+    return uniq([...own, ...ibIds]);
+  }
+
+  return uniq(own);
+}
+
+/** True when the issue passes the visibility rule (null = see everything). */
+export function isIssueVisible(kamId: string, visibleKamIds: string[] | null): boolean {
+  return visibleKamIds === null || visibleKamIds.includes(kamId);
+}
+
 export async function getKamIdsForTeams(teamNames: string[]): Promise<string[]> {
   if (teamNames.includes("__ALL__")) {
     const { data } = await supabase.from("kams").select("id");

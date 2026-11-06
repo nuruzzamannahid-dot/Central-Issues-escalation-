@@ -9,7 +9,8 @@ import {
   formatDateTime,
   supabase,
   getUserAccess,
-  getKamIdsForTeams,
+  getVisibleKamIds,
+  isIssueVisible,
   getSlaState,
   getCmActionSlaState,
   getKamActionSlaState,
@@ -85,11 +86,9 @@ export default function AnalyticsPage() {
       if (!mounted) return;
       if (issueRes.error) setError(issueRes.error.message);
 
-      const kamIds = await getKamIdsForTeams(acc.accessibleTeams);
+      const visible = await getVisibleKamIds(acc);
       const allIssues = (issueRes.data ?? []) as Issue[];
-      const visibleIssues = kamIds.length > 0
-        ? allIssues.filter((i) => kamIds.includes(i.kam_id))
-        : [];
+      const visibleIssues = allIssues.filter((i) => isIssueVisible(i.kam_id, visible));
 
       // Auto-sync status from remarks
       const synced = await autoSyncStatusFromRemarks(visibleIssues);

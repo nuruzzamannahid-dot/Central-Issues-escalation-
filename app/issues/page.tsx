@@ -18,14 +18,15 @@ import {
   REMARK2_WINDOW_HOURS,
   getUserAccess,
   getKamIdsForTeams,
+  getVisibleKamIds,
+  isIssueVisible,
+  getIssueActionMode,
   getCmActionSlaState,
   CM_ACTIONS,
   CM_ACTION_STYLE,
   CM_JUSTIFICATION_MAX,
-  canUseCmAction,
   canPerformCmAction,
   getKamActionSlaState,
-  canUseKamAction,
   canPerformKamAction,
   KAM_JUSTIFICATION_MAX,
   autoSyncStatusFromRemarks,
@@ -89,7 +90,9 @@ export default function IssueDetailPage() {
       setUser({ email });
 
       // Check team membership
-      const acc = await getUserAccess(email);
+      // Honour the role picked at login (an account can hold several accesses).
+      const savedRole = sessionStorage.getItem("kam_access_role");
+      const acc = await getUserAccess(email, savedRole ?? undefined);
       if (!acc) {
         setError("Your email is not in the team member list. Contact your administrator.");
         setLoading(false);
@@ -114,10 +117,10 @@ export default function IssueDetailPage() {
         } else if (!data) {
           setError("Issue not found — it may belong to another KAM or be deleted.");
         } else {
-          // Check if user can access this issue (kam_id in accessible teams)
-          const kamIds = await getKamIdsForTeams(acc.accessibleTeams);
+          // Members only see their own issues; CM also sees every IB issue.
+          const visible = await getVisibleKamIds(acc);
           let iss = data as Issue;
-          if (!kamIds.includes(iss.kam_id)) {
+          if (!isIssueVisible(iss.kam_id, visible)) {
             setCanAccess(false);
             setError("Access denied — this issue belongs to another team.");
           } else {
@@ -292,6 +295,11 @@ export default function IssueDetailPage() {
     router.replace("/dashboard");
   }
 
+  const actionMode = issue && access
+    ? getIssueActionMode(access.role, access.teamName, ibKamIds.includes(issue.kam_id))
+    : "view";
+  const readOnly = actionMode === "view";
+
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted">
@@ -375,12 +383,14 @@ export default function IssueDetailPage() {
                   : ""}
               </p>
             </div>
-            <button
-              onClick={removeIssue}
-              className="rounded-lg border border-red-500/30 dark:border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-500/10 dark:bg-red-500/15"
-            >
-              Delete Issue
-            </button>
+            {!readOnly && (
+              <button
+                onClick={removeIssue}
+                className="rounded-lg border border-red-500/30 dark:border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-500/10 dark:bg-red-500/15"
+              >
+                Delete Issue
+              </button>
+            )}
           </div>
         </div>
 
@@ -502,6 +512,18 @@ export default function IssueDetailPage() {
 
           {/* Update panel */}
           <div className="space-y-6">
+            {readOnly && (
+              <section className="glass rounded-2xl p-6">
+                <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
+                  <Icon name="open" className="h-4 w-4" /> View only
+                </h2>
+                <p className="text-xs text-muted">
+                  You can follow this issue and read its full activity log. The CM team handles
+                  follow-up on IB issues, so there is nothing for you to action here.
+                </p>
+              </section>
+            )}
+            {!readOnly && (
             <section className="glass rounded-2xl p-6">
               <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">
                 Update Status
@@ -542,9 +564,10 @@ export default function IssueDetailPage() {
                 {saving ? "Saving…" : "Save Update"}
               </button>
             </section>
+            )}
 
-            {/* CM Action — IB issues only */}
-            {access && ibKamIds.includes(issue.kam_id) && canUseCmAction(access.role, access.teamName) && (
+            {/* CM Action — the CM team works IB issues */}
+            {access && actionMode === "cm" && (
               <section className="glass rounded-2xl p-6">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-bold uppercase tracking-wide text-muted">
@@ -726,8 +749,8 @@ export default function IssueDetailPage() {
               </section>
             )}
 
-            {/* KAM Action — all issues */}
-            {access && canUseKamAction(access.role, access.teamName) && (
+            {/* KAM Action — non-IB issues only */}
+            {access && actionMode === "kam" && (
               <section className="rounded-2xl border border-violet-500/30 dark:border-violet-500/30 bg-surface-strong p-6 shadow-sm">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">
