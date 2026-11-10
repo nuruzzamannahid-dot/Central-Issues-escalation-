@@ -18,6 +18,9 @@ export default function EscalatePage() {
   const [denied, setDenied] = useState(false);
 
   const [parcelId, setParcelId] = useState("");
+  const [hubLookup, setHubLookup] = useState<{ busy: boolean; message: string }>({ busy: false, message: "" });
+  const lookupRef = useRef<{ id: string; parcel: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const parcelRef = useRef("");
   const [zone, setZone] = useState("");
   const [hub, setHub] = useState("");
   const [category, setCategory] = useState("");
@@ -75,6 +78,60 @@ export default function EscalatePage() {
       mounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    function receive(event: MessageEvent) {
+      const pending = lookupRef.current;
+      if (event.source !== window || event.origin !== window.location.origin ||
+          event.data?.type !== "CARRYBEE_HUB_LOOKUP_RESPONSE" || !pending || event.data.requestId !== pending.id) return;
+      clearTimeout(pending.timer);
+      lookupRef.current = null;
+      if (parcelRef.current.trim() !== pending.parcel) return;
+      if (typeof event.data.error === "string") {
+        setHubLookup({ busy: false, message: event.data.error });
+        return;
+      }
+      const name = typeof event.data.hub === "string" ? event.data.hub.trim() : "";
+      const matches = hubs.filter(h => h.name.trim().toLowerCase() === name.toLowerCase());
+      if (matches.length !== 1) {
+        setHubLookup({ busy: false, message: name ? `Hive hub “${name}” ${matches.length ? "matches multiple zones" : "is not in the hub list"}. Please select manually.` : "Hub not found. Please select manually." });
+        return;
+      }
+      setZone(matches[0].zone_code);
+      setHub(matches[0].name);
+      setHubSearch("");
+      setHubOpen(false);
+      setHubLookup({ busy: false, message: `Current hub found: ${matches[0].name}. Please confirm before submitting.` });
+    }
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [hubs]);
+
+  useEffect(() => () => { if (lookupRef.current) clearTimeout(lookupRef.current.timer); }, []);
+
+  function findCurrentHub() {
+    const parcel = parcelId.trim();
+    if (!/^[a-zA-Z0-9_-]{1,80}$/.test(parcel)) {
+      setHubLookup({ busy: false, message: "Enter one valid parcel / order ID first." });
+      return;
+    }
+    if (lookupRef.current) clearTimeout(lookupRef.current.timer);
+    const id = crypto.randomUUID();
+    const timer = setTimeout(() => {
+      if (lookupRef.current?.id !== id) return;
+      lookupRef.current = null;
+      setHubLookup({ busy: false, message: "No response. Install or enable the CarryBee hub extension and reload this page, or select the hub manually." });
+    }, 20000);
+    lookupRef.current = { id, parcel, timer };
+    setHubLookup({ busy: true, message: "Looking up the current hub in Hive…" });
+    window.postMessage({ type: "CARRYBEE_HUB_LOOKUP_REQUEST", requestId: id, parcelId: parcel }, window.location.origin);
+  }
+
+  function cancelHubLookup() {
+    if (lookupRef.current) clearTimeout(lookupRef.current.timer);
+    lookupRef.current = null;
+    setHubLookup({ busy: false, message: "" });
+  }
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -155,6 +212,7 @@ export default function EscalatePage() {
   }
 
   function selectHub(name: string) {
+    cancelHubLookup();
     setHub(name);
     setHubOpen(false);
     setHubSearch("");
@@ -273,8 +331,12 @@ export default function EscalatePage() {
           <section className="glass rounded-2xl p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Reference</h2>
             <Field label="Parcel / Order ID">
-              <input value={parcelId} onChange={(e) => setParcelId(e.target.value)} placeholder="e.g. PAR-8842211" className="input" />
+              <input value={parcelId} onChange={(e) => { parcelRef.current = e.target.value; setParcelId(e.target.value); cancelHubLookup(); }} placeholder="e.g. PAR-8842211" className="input" />
             </Field>
+            <button type="button" onClick={findCurrentHub} disabled={hubLookup.busy} className="btn-secondary mt-3">
+              {hubLookup.busy ? "Looking up…" : "Find current hub in Hive"}
+            </button>
+            <p className="mt-2 text-sm text-muted" aria-live="polite">{hubLookup.message || "Requires the CarryBee hub extension and a signed-in Hive session. You can also select the hub manually."}</p>
           </section>
 
           {/* Location */}
@@ -282,7 +344,7 @@ export default function EscalatePage() {
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Zone & Hub</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Zone *">
-                <select value={zone} onChange={(e) => { setZone(e.target.value); setHub(""); setHubSearch(""); setHubOpen(false); }} className="input">
+                <select value={zone} onChange={(e) => { cancelHubLookup(); setZone(e.target.value); setHub(""); setHubSearch(""); setHubOpen(false); }} className="input">
                   <option value="">Select zone…</option>
                   {zones.map((z) => <option key={z.code} value={z.code}>{z.name}</option>)}
                 </select>

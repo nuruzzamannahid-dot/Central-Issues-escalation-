@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "CarryBee Current Hub Lookup",
+  "version": "1.0.0",
+  "description": "Find the current hub for an order using your signed-in Hive session.",
+  "permissions": ["offscreen"],
+  "host_permissions": ["https://hive.carrybee.com/*"],
+  "background": { "service_worker": "worker.js" },
+  "content_scripts": [{
+    "matches": ["https://kam-issue-portal.vercel.app/escalate*"],
+    "js": ["bridge.js"]
+  }]
+}
